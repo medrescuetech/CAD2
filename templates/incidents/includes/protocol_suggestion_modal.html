@@ -1,0 +1,139 @@
+<!-- AMPDS Protocol Suggestion Modal -->
+<div class="modal fade" id="ampdsProtocolModal" tabindex="-1" aria-labelledby="ampdsProtocolModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ampdsProtocolModalLabel">AMPDS Protocol Selection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search and Filter Controls -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="ampdsSearchInput" placeholder="Search protocols...">
+                            <button class="btn btn-primary" type="button" id="ampdsSearchBtn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="ampdsCategoryFilter">
+                            <option value="">All Categories</option>
+                            <!-- Categories will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="ampdsPriorityFilter">
+                            <option value="">All Priorities</option>
+                            <!-- Priorities will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tabs for different protocol views -->
+                <ul class="nav nav-tabs" id="ampdsProtocolTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="suggestions-tab" data-bs-toggle="tab" data-bs-target="#suggestions" type="button" role="tab" aria-controls="suggestions" aria-selected="true">
+                            <i class="fas fa-lightbulb"></i> Suggested
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab" aria-controls="search" aria-selected="false">
+                            <i class="fas fa-search"></i> Search Results
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="recent-tab" data-bs-toggle="tab" data-bs-target="#recent" type="button" role="tab" aria-controls="recent" aria-selected="false">
+                            <i class="fas fa-history"></i> Recent
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" data-bs-target="#favorites" type="button" role="tab" aria-controls="favorites" aria-selected="false">
+                            <i class="fas fa-star"></i> Favorites
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="ampdsProtocolTabContent" style="min-height: 300px;">
+                    <!-- Suggested Protocols Tab -->
+                    <div class="tab-pane fade show active" id="suggestions" role="tabpanel" aria-labelledby="suggestions-tab">
+                        <div id="suggestedProtocolsContainer">
+                            <div class="spinner-border text-primary" role="status" id="suggestionsLoader">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="alert alert-info" id="noSuggestionsAlert" style="display: none;">
+                                No protocol suggestions available for this incident type.
+                            </div>
+                            <div class="list-group" id="suggestedProtocolsList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Search Results Tab -->
+                    <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
+                        <div id="searchResultsContainer">
+                            <div class="alert alert-info mb-3" id="searchPrompt">
+                                Use the search box above to find protocols.
+                            </div>
+                            <div class="spinner-border text-primary" role="status" id="searchLoader" style="display: none;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="alert alert-warning" id="noResultsAlert" style="display: none;">
+                                No protocols found matching your search criteria.
+                            </div>
+                            <div class="list-group" id="searchResultsList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Protocols Tab -->
+                    <div class="tab-pane fade" id="recent" role="tabpanel" aria-labelledby="recent-tab">
+                        <div id="recentProtocolsContainer">
+                            <div class="alert alert-info" id="noRecentAlert" style="display: none;">
+                                No recently used protocols.
+                            </div>
+                            <div class="list-group" id="recentProtocolsList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Favorite Protocols Tab -->
+                    <div class="tab-pane fade" id="favorites" role="tabpanel" aria-labelledby="favorites-tab">
+                        <div id="favoriteProtocolsContainer">
+                            <div class="alert alert-info" id="noFavoritesAlert" style="display: none;">
+                                No favorite protocols. Click the star icon on any protocol to add it to favorites.
+                            </div>
+                            <div class="list-group" id="favoriteProtocolsList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Protocol Details -->
+                <div class="mt-3 p-3 border rounded" id="selectedProtocolDetails" style="display: none;">
+                    <h5 class="border-bottom pb-2 d-flex justify-content-between">
+                        <span id="selectedProtocolTitle">Protocol Details</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-warning" id="toggleFavoriteBtn">
+                                <i class="far fa-star"></i>
+                            </button>
+                        </div>
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Protocol Code:</strong> <span id="selectedProtocolCode"></span></p>
+                            <p><strong>Category:</strong> <span id="selectedProtocolCategory"></span></p>
+                            <p><strong>Priority:</strong> <span class="badge" id="selectedProtocolPriority"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Dispatch Advice:</strong></p>
+                            <div class="p-2 bg-light rounded" id="selectedProtocolAdvice" style="max-height: 120px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="assignProtocolBtn" disabled>Assign Protocol</button>
+            </div>
+        </div>
+    </div>
+</div>

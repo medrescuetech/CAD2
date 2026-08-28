@@ -1,0 +1,119 @@
+# CAD System Permission Reference
+
+## Current Permissions (Updated Model)
+
+### General Permissions
+- VIEW_DASHBOARD (0x0001): Access to view the main dashboard
+- ACCESS_API (0x0002): Basic API access permission
+
+### Incident Permissions
+- CREATE_INCIDENT (0x0004): Create new incidents
+- EDIT_INCIDENT (0x0008): Edit existing incidents
+- VIEW_INCIDENTS (0x0010): View incident details
+- CLOSE_INCIDENT (0x0020): Close incidents
+- DELETE_INCIDENT (0x0040): Delete incidents
+- EXPORT_INCIDENTS (0x0080): Export incident data
+- IMPORT_INCIDENTS (0x0100): Import incident data
+
+### Unit Permissions
+- MANAGE_UNITS (0x0200): Comprehensive unit management
+- ASSIGN_UNITS (0x0400): Assign units to incidents
+- VIEW_UNITS (0x0800): View unit details
+- TRACK_UNITS (0x1000): Track unit locations
+- VIEW_UNIT_LOCATIONS (0x2000): View unit location data
+
+### User & Role Permissions
+- MANAGE_USERS (0x4000): Manage user accounts
+- MANAGE_ROLES (0x8000): Manage role definitions
+
+### System Permissions
+- ADMIN (0x10000): Full administrative access
+- MANAGE_GEOSPATIAL (0x20000): Manage geospatial data
+
+### Notification Permissions
+- MANAGE_NOTIFICATIONS (0x40000): Manage notification settings
+- TEST_EMAIL_SERVICE (0x80000): Test email notification service
+- SEND_EMAILS (0x100000): Send email notifications
+
+## Permission Mapping (Old -> New)
+
+The following is a mapping from old permission flags to their new equivalents:
+
+### Renamed/Consolidated Permissions
+- ADMINISTRATOR -> ADMIN
+- UPDATE_INCIDENTS -> EDIT_INCIDENT
+- CLOSE_INCIDENTS -> CLOSE_INCIDENT
+- CREATE_INCIDENTS -> CREATE_INCIDENT
+- DELETE_INCIDENTS -> DELETE_INCIDENT
+- CREATE_UNITS -> MANAGE_UNITS (includes creation)
+- UPDATE_UNITS -> MANAGE_UNITS (includes updating)
+- DELETE_UNITS -> MANAGE_UNITS (includes deletion)
+- EDIT_UNITS -> MANAGE_UNITS
+- READ_ONLY -> VIEW_DASHBOARD (limited access)
+- VIEW_LOGS -> ADMIN (system logs are admin-only)
+- VIEW_MAP -> MANAGE_GEOSPATIAL (includes map viewing)
+- VIEW_LOCATIONS -> MANAGE_GEOSPATIAL (includes location data)
+- MANAGE_AMPDS -> ADMIN (Advanced Medical Priority Dispatch System features)
+- VIEW_AMPDS -> ADMIN (AMPDS viewing)
+- VIEW_EMAIL_LOGS -> MANAGE_NOTIFICATIONS (includes email log access)
+- ADD_INCIDENT_LOGS -> EDIT_INCIDENT (includes adding logs)
+- EXPORT_DATA -> Multiple (EXPORT_INCIDENTS for incidents, etc.)
+- IMPORT_DATA -> Multiple (IMPORT_INCIDENTS for incidents, etc.)
+- VIEW_PICKUP_POINTS -> MANAGE_GEOSPATIAL (includes pickup points)
+- MANAGE_SETTINGS -> ADMIN (system settings)
+- VIEW_SETTINGS -> ADMIN (view settings)
+- VIEW_REPORTS -> VIEW_INCIDENTS (includes reports)
+- VIEW_USERS -> MANAGE_USERS (includes viewing)
+- VIEW_ROLES -> MANAGE_ROLES (includes viewing)
+
+### Missing Permissions (Need to be added)
+- VIEW_LOG: Used in websocket_events.py for viewing system logs
+- CLOSE_INCIDENTS: Used in multiple places, needs to be aligned with CLOSE_INCIDENT
+- EXPORT_DATA: General export permission used in multiple contexts
+- IMPORT_DATA: General import permission used in multiple contexts
+
+## Role Templates
+
+### Default Roles and Their Permissions
+
+1. **Administrator**
+   - All permissions (ADMIN bitmask)
+
+2. **Dispatcher**
+   - VIEW_DASHBOARD
+   - ACCESS_API
+   - CREATE_INCIDENT
+   - EDIT_INCIDENT
+   - VIEW_INCIDENTS
+   - CLOSE_INCIDENT
+   - ASSIGN_UNITS
+   - VIEW_UNITS
+   - TRACK_UNITS
+   - VIEW_UNIT_LOCATIONS
+   - SEND_EMAILS
+
+3. **Supervisor**
+   - All Dispatcher permissions
+   - MANAGE_UNITS
+   - DELETE_INCIDENT
+   - EXPORT_INCIDENTS
+   - IMPORT_INCIDENTS
+   - MANAGE_NOTIFICATIONS
+
+4. **ReadOnly**
+   - VIEW_DASHBOARD
+   - VIEW_INCIDENTS
+   - VIEW_UNITS
+   - VIEW_UNIT_LOCATIONS
+
+## Implementation Notes
+
+To fully implement this permission model:
+
+1. Update all permission checks in websocket_events.py to use the new permission names
+2. Update permission checks in blueprints (admin.py, api.py, etc.)
+3. Ensure all role definitions use the updated permission flags
+4. Update any frontend permission checks to align with the backend model
+5. Create a database migration to update existing roles in the database
+
+This permission structure provides a more organized and maintainable approach while ensuring backward compatibility with existing functionality.

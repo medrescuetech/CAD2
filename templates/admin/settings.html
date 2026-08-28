@@ -1,0 +1,286 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin Settings{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<style>
+    .settings-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .tooltip-icon {
+        cursor: help;
+        margin-left: 5px;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="settings-loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <h2>Application Settings</h2>
+    <div class="alert alert-info" role="alert">
+        <i class="fas fa-info-circle"></i> Changes to these settings will require a server restart to take full effect.
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="mb-3 text-end">
+                <button type="button" class="btn btn-secondary me-2" onclick="backupSettings()">
+                    <i class="fas fa-download me-2"></i>Backup Settings
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('restoreFile').click()">
+                    <i class="fas fa-upload me-2"></i>Restore Settings
+                </button>
+                <input type="file" id="restoreFile" style="display: none" accept=".json" onchange="restoreSettings(this)">
+            </div>
+
+            <form id="settingsForm">
+                <h4 class="mb-3">General Settings</h4>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="siteName" class="form-label">Site Name
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="The name that appears in the browser title and header"></i>
+                        </label>
+                        <input type="text" class="form-control" id="siteName" name="site_name" required>
+                        <div class="invalid-feedback">Please enter a site name</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="timezone" class="form-label">Timezone
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="System timezone for date/time display"></i>
+                        </label>
+                        <select class="form-select" id="timezone" name="timezone" required>
+                            <option value="Australia/Sydney">Sydney</option>
+                            <option value="Australia/Melbourne">Melbourne</option>
+                            <option value="Australia/Brisbane">Brisbane</option>
+                            <option value="Australia/Adelaide">Adelaide</option>
+                            <option value="Australia/Perth">Perth</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a timezone</div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="incidentRetentionDays" class="form-label">Incident Retention (Days)
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="Number of days to retain incident records"></i>
+                        </label>
+                        <input type="number" class="form-control" id="incidentRetentionDays" name="incident_retention_days" min="1" required>
+                        <div class="invalid-feedback">Please enter a valid number of days</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="logRetentionDays" class="form-label">Log Retention (Days)
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="Number of days to retain system logs"></i>
+                        </label>
+                        <input type="number" class="form-control" id="logRetentionDays" name="log_retention_days" min="1" required>
+                        <div class="invalid-feedback">Please enter a valid number of days</div>
+                    </div>
+                </div>
+
+                <h4 class="mb-3">Map Configuration</h4>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Map Center
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="Latitude and longitude coordinates for the map center"></i>
+                        </label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="mapCenterLat" name="map_center_lat" placeholder="Latitude" required>
+                            <input type="text" class="form-control" id="mapCenterLng" name="map_center_lng" placeholder="Longitude" required>
+                        </div>
+                        <div class="invalid-feedback">Please enter valid latitude and longitude coordinates</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="mapZoom" class="form-label">Default Zoom Level
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="Initial zoom level for the map"></i>
+                        </label>
+                        <input type="number" class="form-control" id="mapZoom" name="map_zoom" min="1" max="20" required>
+                        <div class="invalid-feedback">Please enter a valid zoom level</div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label for="mapApiKey" class="form-label">Map API Key
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="API key for map services"></i>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="mapApiKey" name="map_api_key">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKeyVisibility()">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="mb-3">System Configuration</h4>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="maxIncidents" class="form-label">Maximum Active Incidents
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="Maximum number of active incidents allowed"></i>
+                        </label>
+                        <input type="number" class="form-control" id="maxIncidents" name="max_incidents" min="1" required>
+                        <div class="invalid-feedback">Please enter a valid number of incidents</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="maxUnits" class="form-label">Maximum Active Units
+                            <i class="fas fa-question-circle tooltip-icon" data-bs-toggle="tooltip" title="Maximum number of active units allowed"></i>
+                        </label>
+                        <input type="number" class="form-control" id="maxUnits" name="max_units" min="1" required>
+                        <div class="invalid-feedback">Please enter a valid number of units</div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-secondary me-2" onclick="resetForm()">
+                        <i class="fas fa-undo me-2"></i>Reset Changes
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = window.socket;
+    const form = document.getElementById('settingsForm');
+
+    // Request initial settings
+    socket.emit('request_settings');
+
+    // Listen for settings updates
+    socket.on('settings_update', function(settings) {
+        Object.entries(settings).forEach(([key, value]) => {
+            const input = document.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = value;
+            }
+        });
+    });
+
+    // Handle settings update success
+    socket.on('settings_update_success', function(data) {
+        showAlert('success', data.message);
+    });
+
+    // Handle settings update error
+    socket.on('settings_update_error', function(data) {
+        console.error('Settings update error:', data.error);
+        showAlert('danger', 'Error updating settings: ' + data.error);
+    });
+
+    // Handle form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const settings = {};
+        
+        for (let [key, value] of formData.entries()) {
+            settings[key] = value;
+        }
+        
+        socket.emit('update_settings', settings);
+    });
+});
+
+function backupSettings() {
+    fetch('/api/settings/backup')
+        .then(response => {
+            if (!response.ok) throw new Error('Backup failed');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `settings_backup_${new Date().toISOString()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showAlert('success', 'Settings backup downloaded successfully');
+        })
+        .catch(error => {
+            console.error('Backup error:', error);
+            showAlert('danger', 'Failed to backup settings: ' + error.message);
+        });
+}
+
+function restoreSettings(input) {
+    if (!input.files.length) return;
+    
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/api/settings/restore', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Restore failed');
+        return response.json();
+    })
+    .then(data => {
+        showAlert('success', 'Settings restored successfully');
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Restore error:', error);
+        showAlert('danger', 'Failed to restore settings: ' + error.message);
+    });
+}
+
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('mapApiKey');
+    const icon = document.querySelector('#mapApiKey + button i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function resetForm() {
+    document.getElementById('settingsForm').reset();
+    showAlert('info', 'Form reset to saved values');
+}
+
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '1050';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Reports</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Incident Reports</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>View and export incident data including custom filters and date ranges.</p>
+                            <a href="{{ url_for('reporting.export_incidents_csv') }}" class="btn btn-primary btn-sm">Export Incidents (CSV)</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Daily Logs</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Access daily activity logs with filtering options.</p>
+                            <a href="{{ url_for('reporting.export_daily_logs_csv') }}" class="btn btn-primary btn-sm">Export Daily Logs (CSV)</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Data Visualizations</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Interactive charts and graphs showing incident trends and statistics.</p>
+                            <a href="{{ url_for('reporting.visualizations') }}" class="btn btn-primary btn-sm">View Visualizations</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

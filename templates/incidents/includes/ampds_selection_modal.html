@@ -1,0 +1,58 @@
+<!-- AMPDS Protocol Selection Modal Template -->
+<div class="modal-body">
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Select an AMPDS protocol by choosing a category and sub-category, or directly enter a card number.
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="ampdsCardNumber" class="form-label">Card Number</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="ampdsCardNumber" placeholder="Enter card number">
+                <button class="btn btn-outline-secondary" type="button" id="searchCardBtn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="form-text">Directly enter a card number to auto-select the category and sub-category</div>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="ampdsCategory" class="form-label">Category</label>
+            <select class="form-select" id="ampdsCategory">
+                <option value="">Select Category</option>
+                <!-- Categories will be populated via JavaScript -->
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="ampdsSubCategory" class="form-label">Sub-Category</label>
+            <select class="form-select" id="ampdsSubCategory" disabled>
+                <option value="">Select Sub-Category</option>
+                <!-- Sub-categories will be populated via JavaScript -->
+            </select>
+        </div>
+    </div>
+    
+    <!-- Protocol Details Section -->
+    <div class="mt-4 p-3 border rounded" id="protocolDetails" style="display: none;">
+        <h5 class="border-bottom pb-2">Protocol Details</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Protocol Code:</strong> <span id="protocolCode"></span></p>
+                <p><strong>Category:</strong> <span id="protocolCategory"></span></p>
+                <p><strong>Card Number:</strong> <span id="protocolCardNumber"></span></p>
+                <p><strong>Priority:</strong> <span class="badge" id="protocolPriority"></span></p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Dispatch Advice:</strong></p>
+                <div class="p-2 bg-light rounded" id="protocolAdvice" style="max-height: 150px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Page Not Found{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h1 class="display-1 text-info">404</h1>
+                    <h2 class="mb-4">Page Not Found</h2>
+                    <p class="lead">Sorry, the page you're looking for doesn't exist.</p>
+                    <p>The page might have been moved or deleted. Please check the URL and try again.</p>
+                    <div class="mt-4">
+                        <a href="{{ url_for('pages.index') }}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>Return to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

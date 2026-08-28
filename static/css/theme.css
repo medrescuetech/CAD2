@@ -1,0 +1,258 @@
+/* Theme variables */
+:root {
+    /* Base colors */
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --secondary-hover: #545b62;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+
+    /* Light theme colors */
+    --light-bg: #f8f9fa;
+    --light-text: #212529;
+    --light-border: #dee2e6;
+    --light-card-bg: #ffffff;
+    --light-input-bg: #ffffff;
+    --light-hover: #e9ecef;
+
+    /* Dark theme colors */
+    --dark-bg: #1a1d21;
+    --dark-text: #e9ecef;
+    --dark-border: #2d3238;
+    --dark-card-bg: #2d3238;
+    --dark-input-bg: #1a1d21;
+    --dark-hover: #343a40;
+
+    /* Default theme (light) */
+    --bg-color: var(--light-bg);
+    --text-color: var(--light-text);
+    --border-color: var(--light-border);
+    --card-bg: var(--light-card-bg);
+    --input-bg: var(--light-input-bg);
+    --hover-bg: var(--light-hover);
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-size-base: 1rem;
+    --font-size-sm: 0.875rem;
+    --font-size-lg: 1.25rem;
+    --font-weight-normal: 400;
+    --font-weight-bold: 700;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 3rem;
+
+    /* Borders */
+    --border-radius: 0.25rem;
+    --border-radius-lg: 0.5rem;
+    --border-width: 1px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* Z-index */
+    --z-index-dropdown: 1000;
+    --z-index-sticky: 1020;
+    --z-index-fixed: 1030;
+    --z-index-modal: 1050;
+    --z-index-popover: 1060;
+    --z-index-tooltip: 1070;
+
+    /* Status Colors */
+    --status-available: var(--success-color);
+    --status-unavailable: var(--danger-color);
+    --status-enroute: var(--warning-color);
+    --status-onscene: var(--danger-color);
+    --status-returning: var(--info-color);
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+    --bg-color: var(--dark-bg);
+    --text-color: var(--dark-text);
+    --border-color: var(--dark-border);
+    --card-bg: var(--dark-card-bg);
+    --input-bg: var(--dark-input-bg);
+    --hover-bg: var(--dark-hover);
+}
+
+/* Global styles */
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Card styles */
+.card {
+    background-color: var(--card-bg);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+    background-color: var(--card-bg);
+    border-bottom: var(--border-width) solid var(--border-color);
+    padding: var(--spacing-md);
+}
+
+/* Button styles */
+.btn {
+    font-weight: var(--font-weight-normal);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--white-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+/* Form styles */
+.form-control {
+    background-color: var(--input-bg);
+    border: var(--border-width) solid var(--border-color);
+    color: var(--text-color);
+}
+
+.form-control:focus {
+    background-color: var(--input-bg);
+    border-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+/* Table styles */
+.table {
+    color: var(--text-color);
+}
+
+.table thead th {
+    background-color: var(--card-bg);
+    border-bottom: calc(var(--border-width) * 2) solid var(--border-color);
+}
+
+.table td {
+    border-color: var(--border-color);
+}
+
+/* Modal styles */
+.modal-content {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.modal-header {
+    border-bottom-color: var(--border-color);
+}
+
+.modal-footer {
+    border-top-color: var(--border-color);
+}
+
+/* Dropdown styles */
+.dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.dropdown-item {
+    color: var(--text-color);
+}
+
+.dropdown-item:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-color);
+}
+
+/* Nav styles */
+.nav-tabs {
+    border-bottom-color: var(--border-color);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: var(--border-color);
+}
+
+/* List group styles */
+.list-group-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Input group styles */
+.input-group-text {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Status badges */
+.badge {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+}
+
+.status-available {
+    background-color: var(--status-available);
+    color: var(--white-color);
+}
+
+.status-unavailable {
+    background-color: var(--status-unavailable);
+    color: var(--white-color);
+}
+
+.status-enroute {
+    background-color: var(--status-enroute);
+    color: var(--dark-color);
+}
+
+.status-onscene {
+    background-color: var(--status-onscene);
+    color: var(--white-color);
+}
+
+.status-returning {
+    background-color: var(--status-returning);
+    color: var(--white-color);
+}
+
+/* Utility classes */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+.rounded { border-radius: var(--border-radius); }
+.rounded-lg { border-radius: var(--border-radius-lg); }
+
+.font-sm { font-size: var(--font-size-sm); }
+.font-lg { font-size: var(--font-size-lg); }
+
+.font-bold { font-weight: var(--font-weight-bold); }

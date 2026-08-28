@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <h1 class="mb-4">Reports</h1>
+    
+    <!-- Report Generation -->
+    <div class="row">
+        <!-- Report Types -->
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Report Types</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <button type="button" class="list-group-item list-group-item-action active" data-report="incident">
+                            Incident Reports
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" data-report="unit">
+                            Unit Activity Reports
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" data-report="daily">
+                            Daily Summary Reports
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Parameters -->
+        <div class="col-md-9">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Report Parameters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="reportForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="startDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="startDate" name="date_start" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="endDate" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="endDate" name="date_end" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter options for incidents -->
+                        <div id="incidentFilters">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-select" id="status" name="status">
+                                            <option value="">All</option>
+                                            <option value="PENDING">Pending</option>
+                                            <option value="ACTIVE">Active</option>
+                                            <option value="CLOSED">Closed</option>
+                                            <option value="CANCELED">Canceled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="incidentType" class="form-label">Incident Type</label>
+                                        <select class="form-select" id="incidentType" name="incident_type">
+                                            <option value="">All</option>
+                                            <!-- Will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="priority" class="form-label">Priority</label>
+                                        <select class="form-select" id="priority" name="priority">
+                                            <option value="">All</option>
+                                            <option value="1">Emergency (1)</option>
+                                            <option value="2">Urgent (2)</option>
+                                            <option value="3">Non-urgent (3)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Unit filters (hidden by default) -->
+                        <div id="unitFilters" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="unitType" class="form-label">Unit Type</label>
+                                        <select class="form-select" id="unitType" name="unit_type">
+                                            <option value="">All</option>
+                                            <!-- Will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="unit" class="form-label">Unit</label>
+                                        <select class="form-select" id="unit" name="unit_id">
+                                            <option value="">All</option>
+                                            <!-- Will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reportFormat" class="form-label">Format</label>
+                            <select class="form-select" id="reportFormat" name="format" required>
+                                <option value="pdf">PDF</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Generated Reports -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Report Name</th>
+                                    <th>Type</th>
+                                    <th>Generated</th>
+                                    <th>Format</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentReports">
+                                <!-- Reports will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default dates (current week)
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday of current week
+        
+        document.getElementById('startDate').valueAsDate = startOfWeek;
+        document.getElementById('endDate').valueAsDate = today;
+        
+        // Load incident types
+        loadIncidentTypes();
+        
+        // Report type selection
+        const reportTypeButtons = document.querySelectorAll('[data-report]');
+        reportTypeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                reportTypeButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Show/hide appropriate filters
+                const reportType = this.getAttribute('data-report');
+                toggleFilterSections(reportType);
+            });
+        });
+        
+        // Form submission
+        document.getElementById('reportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get active report type
+            const activeReportType = document.querySelector('[data-report].active').getAttribute('data-report');
+            const reportFormat = document.getElementById('reportFormat').value;
+            
+            // Generate report based on type and format
+            generateReport(activeReportType, reportFormat, new FormData(this));
+        });
+    });
+    
+    // Show/hide filter sections based on report type
+    function toggleFilterSections(reportType) {
+        // Hide all filter sections
+        document.getElementById('incidentFilters').style.display = 'none';
+        document.getElementById('unitFilters').style.display = 'none';
+        
+        // Show relevant filters
+        if (reportType === 'incident') {
+            document.getElementById('incidentFilters').style.display = 'block';
+        } else if (reportType === 'unit') {
+            document.getElementById('unitFilters').style.display = 'block';
+            
+            // Load unit types and units if not already loaded
+            if (document.getElementById('unitType').options.length <= 1) {
+                loadUnitTypes();
+            }
+        }
+    }
+    
+    // Load incident types from API
+    async function loadIncidentTypes() {
+        try {
+            const response = await fetch('/api/incident-types');
+            const data = await response.json();
+            
+            if (data.success) {
+                const typeSelect = document.getElementById('incidentType');
+                
+                // Clear existing options except the first one
+                while (typeSelect.options.length > 1) {
+                    typeSelect.remove(1);
+                }
+                
+                // Add new options
+                data.incident_types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name;
+                    typeSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading incident types:', error);
+            showAlert('danger', 'Failed to load incident types');
+        }
+    }
+    
+    // Load unit types from API
+    async function loadUnitTypes() {
+        try {
+            const response = await fetch('/api/unit-types');
+            const data = await response.json();
+            
+            if (data.success) {
+                const typeSelect = document.getElementById('unitType');
+                
+                // Clear existing options except the first one
+                while (typeSelect.options.length > 1) {
+                    typeSelect.remove(1);
+                }
+                
+                // Add new options
+                data.unit_types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name;
+                    typeSelect.appendChild(option);
+                });
+                
+                // Load units
+                loadUnits();
+            }
+        } catch (error) {
+            console.error('Error loading unit types:', error);
+            showAlert('danger', 'Failed to load unit types');
+        }
+    }
+    
+    // Load units from API
+    async function loadUnits() {
+        try {
+            const response = await fetch('/api/units?status=ACTIVE');
+            const data = await response.json();
+            
+            if (data.success) {
+                const unitSelect = document.getElementById('unit');
+                
+                // Clear existing options except the first one
+                while (unitSelect.options.length > 1) {
+                    unitSelect.remove(1);
+                }
+                
+                // Add new options
+                data.units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit.id;
+                    option.textContent = `${unit.unit_number} - ${unit.name}`;
+                    unitSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading units:', error);
+            showAlert('danger', 'Failed to load units');
+        }
+    }
+    
+    // Generate report based on type, format, and form data
+    function generateReport(reportType, format, formData) {
+        // Convert FormData to URLSearchParams
+        const params = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        
+        let endpoint = '';
+        
+        // Set endpoint based on report type and format
+        if (reportType === 'incident') {
+            if (format === 'pdf') {
+                // For single incident PDF, we'd need an incident ID
+                showAlert('warning', 'Please select a specific incident to generate a PDF report');
+                return;
+            } else if (format === 'csv') {
+                endpoint = `/reports/incidents/csv?${params.toString()}`;
+            }
+        } else if (reportType === 'unit') {
+            if (format === 'pdf') {
+                endpoint = `/reports/units/pdf?${params.toString()}`;
+            } else if (format === 'csv') {
+                endpoint = `/reports/units/csv?${params.toString()}`;
+            }
+        } else if (reportType === 'daily') {
+            if (format === 'pdf') {
+                endpoint = `/reports/daily/pdf?${params.toString()}`;
+            } else if (format === 'csv') {
+                endpoint = `/reports/daily/csv?${params.toString()}`;
+            }
+        }
+        
+        if (endpoint) {
+            // Create a record of the generated report
+            const reportRecord = {
+                name: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
+                type: reportType,
+                generated: new Date().toLocaleString(),
+                format: format.toUpperCase(),
+                url: endpoint
+            };
+            
+            // Add to recent reports
+            addReportToTable(reportRecord);
+            
+            // Open the report in a new tab
+            window.open(endpoint, '_blank');
+        } else {
+            showAlert('danger', 'Invalid report type or format');
+        }
+    }
+    
+    // Add report to recent reports table
+    function addReportToTable(report) {
+        const tbody = document.getElementById('recentReports');
+        
+        // Create row
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${report.name}</td>
+            <td>${report.type.charAt(0).toUpperCase() + report.type.slice(1)}</td>
+            <td>${report.generated}</td>
+            <td>${report.format}</td>
+            <td>
+                <a href="${report.url}" target="_blank" class="btn btn-sm btn-primary">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </td>
+        `;
+        
+        // Add to top of table
+        if (tbody.firstChild) {
+            tbody.insertBefore(row, tbody.firstChild);
+        } else {
+            tbody.appendChild(row);
+        }
+    }
+    
+    // Show alert message
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Insert at top of form card
+        const cardBody = document.querySelector('#reportForm').closest('.card-body');
+        cardBody.insertBefore(alertDiv, cardBody.firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
+</script>
+{% endblock %}

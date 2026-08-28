@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}API Keys Management{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">API Keys Management</h3>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addApiKeyModal">
+                <i class="fas fa-plus"></i> Generate New API Key
+            </button>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Key (Last 8 chars)</th>
+                            <th>Created</th>
+                            <th>Last Used</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key in api_keys %}
+                        <tr>
+                            <td>{{ key.description }}</td>
+                            <td><code>...{{ key.key[-8:] }}</code></td>
+                            <td>{{ key.created_at }}</td>
+                            <td>{{ key.last_used or 'Never' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if key.active else 'danger' }}">
+                                    {{ 'Active' if key.active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="toggleApiKey('{{ key.id }}', {{ 'false' if key.active else 'true' }})">
+                                    {{ 'Deactivate' if key.active else 'Activate' }}
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteApiKey('{{ key.id }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add API Key Modal -->
+<div class="modal fade" id="addApiKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generate New API Key</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addApiKeyForm">
+                    <div class="mb-3">
+                        <label for="keyDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="keyDescription" required>
+                        <div class="form-text">Enter a description to help identify this API key's purpose.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="generateApiKey()">Generate Key</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Display New API Key Modal -->
+<div class="modal fade" id="displayApiKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New API Key Generated</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This key will only be shown once. Please copy it now and store it securely.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Your API Key:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="newApiKey" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyApiKey()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I've Copied the Key</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleApiKey(keyId, activate) {
+    fetch(`/api/keys/${keyId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ active: activate })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to toggle API key status');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Unknown error occurred', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(error.message, 'danger');
+    });
+}
+
+function deleteApiKey(keyId) {
+    if (confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+        fetch(`/api/keys/${keyId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to delete API key');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message || 'Unknown error occurred', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert(error.message, 'danger');
+        });
+    }
+}
+
+function generateApiKey() {
+    const form = document.getElementById('addApiKeyForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const data = {
+        description: form.querySelector('#keyDescription').value
+    };
+
+    fetch('/api/keys/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to generate API key');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Hide the add modal
+            bootstrap.Modal.getInstance(document.getElementById('addApiKeyModal')).hide();
+            
+            // Show the key in the display modal
+            document.getElementById('newApiKey').value = data.key;
+            new bootstrap.Modal(document.getElementById('displayApiKeyModal')).show();
+        } else {
+            showAlert(data.message || 'Unknown error occurred', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(error.message, 'danger');
+    });
+}
+
+function copyApiKey() {
+    const keyInput = document.getElementById('newApiKey');
+    keyInput.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const button = event.currentTarget;
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    setTimeout(() => {
+        button.innerHTML = originalHtml;
+    }, 2000);
+}
+
+// Helper function to display alerts
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at the top of the card body
+    const cardBody = document.querySelector('.card-body');
+    cardBody.insertBefore(alertDiv, cardBody.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => alertDiv.remove(), 300);
+    }, 5000);
+}
+</script>
+{% endblock %}

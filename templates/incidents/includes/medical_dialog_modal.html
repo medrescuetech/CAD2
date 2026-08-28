@@ -1,0 +1,160 @@
+<!-- Medical Protocol Modal -->
+<div class="modal fade" id="medicalProtocolModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">AMPDS Protocol Selection</h5>
+                <div>
+                    <button class="btn btn-light btn-sm" onclick="toggleFavorite()">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#shortcutsModal">
+                        <i class="fas fa-keyboard"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <form id="protocolForm">
+                    <!-- Quick Search -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="quickSearch" 
+                                       placeholder="Search by card number or keyword...">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="showRecent()">
+                                    <i class="fas fa-history"></i> Recent
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="showFavorites()">
+                                    <i class="fas fa-star"></i> Favorites
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Protocol Selection -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="cardNumber" class="form-label">Card Number</label>
+                            <input type="text" class="form-control" id="cardNumber" onchange="IncidentManager.ampdsManager.searchByCardNumber(this.value)">
+                            <input type="hidden" id="selectedProtocolId" name="protocol_id">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" onchange="IncidentManager.ampdsManager.updateSubCategories(this.value)">
+                                <option value="">Select Category</option>
+                                <!-- Categories will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="subCategory" class="form-label">Sub-Category</label>
+                            <select class="form-select" id="subCategory" onchange="IncidentManager.ampdsManager.updateCardNumber()">
+                                <option value="">Select Sub-Category</option>
+                                <!-- Sub-categories will be populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Protocol Information -->
+                    <div id="protocolInfo" style="display: none;">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Priority Level</h6>
+                                    <span id="priorityLevel" class="badge priority-ALPHA">Loading...</span>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="IncidentManager.ampdsManager.viewPreArrivalPDF()">
+                                        <i class="fas fa-file-pdf"></i> View Pre-Arrival Instructions
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PDF Viewer -->
+                        <div id="pdfViewer" class="card mb-3" style="display: none;">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Pre-Arrival Instructions</h6>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="IncidentManager.ampdsManager.togglePDFFullscreen()">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="IncidentManager.ampdsManager.closePDFViewer()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body" style="height: 300px;">
+                                <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Dispatch Advice</h6>
+                            </div>
+                            <div class="card-body">
+                                <p id="dispatchAdvice" class="mb-0">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="IncidentManager.ampdsManager.applyProtocol()">Apply Protocol</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shortcuts Modal -->
+<div class="modal fade" id="shortcutsModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Keyboard Shortcuts</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><kbd>Alt</kbd> + <kbd>S</kbd></td>
+                            <td>Focus Search Box</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Alt</kbd> + <kbd>C</kbd></td>
+                            <td>Focus Category Dropdown</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Alt</kbd> + <kbd>N</kbd></td>
+                            <td>Focus Card Number Field</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Alt</kbd> + <kbd>A</kbd></td>
+                            <td>Apply Protocol</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Esc</kbd></td>
+                            <td>Close Dialog</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

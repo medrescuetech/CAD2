@@ -1,0 +1,984 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">User Management</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">System Users</h6>
+            <div>
+                <button class="btn btn-success btn-sm" onclick="exportUsers()">
+                    <i class="fas fa-download"></i> Export Users
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="showImportModal()">
+                    <i class="fas fa-upload"></i> Import Users
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">
+                    <i class="fas fa-user-plus"></i> Add User
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>
+                                <span class="badge {% if user.active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ 'Active' if user.active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="editUser('{{ user.username }}')">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="confirmDeleteUser('{{ user.username }}')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="username" name="username">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">User Type</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="userType" id="userTypeAdmin" value="admin" onchange="toggleUserType()">
+                            <label class="form-check-label" for="userTypeAdmin">Administrator</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="userType" id="userTypeUser" value="user" checked onchange="toggleUserType()">
+                            <label class="form-check-label" for="userTypeUser">Regular User</label>
+                        </div>
+                    </div>
+                    
+                    <div id="userPermissionsSection">
+                        <div class="mb-3">
+                            <label class="form-label">Role Template</label>
+                            <select class="form-select" id="roleTemplate" onchange="applyRoleTemplate()">
+                                <option value="">Custom (Select Permissions Manually)</option>
+                                <option value="Administrator">Administrator - All Permissions</option>
+                                <option value="Dispatcher">Dispatcher - Manage Incidents and Units</option>
+                                <option value="Supervisor">Supervisor - Extended Dispatcher Role</option>
+                                <option value="ReadOnly">Read Only - View Access Only</option>
+                            </select>
+                            <div class="form-text">Select a template to quickly set common permissions, or choose individual permissions below</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Individual Permissions</label>
+                            <div class="alert alert-info">
+                                <small>Select individual permissions below to customize user access.</small>
+                            </div>
+                            <div class="row permission-container">
+                                {% include 'admin/includes/permission_checkboxes.html' %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="active" name="active">
+                            <label class="form-check-label" for="active">Active</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Users Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm">
+                    <div class="mb-3">
+                        <label class="form-label">CSV File</label>
+                        <input type="file" class="form-control" id="importFile" accept=".csv" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <h6>CSV Format</h6>
+                        <p>Required columns: username, email, role</p>
+                        <p>Optional columns: active (true/false)</p>
+                        <a href="#" onclick="downloadTemplate()">Download Template</a>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="importUsers()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    const usersTable = $('#usersTable').DataTable({
+        responsive: true,
+        order: [[1, 'asc']], // Sort by username
+        columnDefs: [
+            { targets: -1, orderable: false } // Disable ordering on the last column (actions)
+        ]
+    });
+    
+    // Load roles for dropdowns
+    loadRoleTemplates();
+    
+    // Handle user type toggle
+    $('#userType').on('change', function() {
+        const isAdmin = $(this).val() === 'admin';
+        
+        if (isAdmin) {
+            // Select all permissions and disable checkboxes
+            $('.permission-checkbox').prop('checked', true);
+            $('#roleTemplate').val('Administrator').trigger('change').prop('disabled', true);
+            $('#permissionsSection').addClass('disabled');
+            $('.permission-checkbox').prop('disabled', true);
+        } else {
+            // Enable role template selection and permissions
+            $('#roleTemplate').prop('disabled', false);
+            $('#permissionsSection').removeClass('disabled');
+            $('.permission-checkbox').prop('disabled', false);
+            
+            // Reapply the currently selected role template
+            applyRoleTemplate($('#roleTemplate').val());
+        }
+    });
+    
+    // Handle role template selection
+    $('#roleTemplate').on('change', function() {
+        const template = $(this).val();
+        applyRoleTemplate(template);
+    });
+    
+    // Edit user button click
+    $(document).on('click', '.edit-user-btn', function() {
+        const userId = $(this).data('user-id');
+        const username = $(this).data('username');
+        
+        // Reset form and permissions
+        $('#editUserForm')[0].reset();
+        $('.permission-checkbox').prop('checked', false);
+        
+        // Get user data from API
+        $.ajax({
+            url: `/api/admin/users/${username}`,
+            type: 'GET',
+            success: function(user) {
+                // Populate form
+                $('#userId').val(user.id);
+                $('#username').val(user.username);
+                $('#email').val(user.email);
+                $('#active').prop('checked', user.active);
+                
+                // Determine if user is admin
+                const isAdmin = user.permissions.includes('ADMIN');
+                $('#userType').val(isAdmin ? 'admin' : 'regular').trigger('change');
+                
+                // If regular user, find matching role template
+                if (!isAdmin) {
+                    findMatchingRoleTemplate(user.permissions);
+                }
+                
+                // Open modal
+                $('#editUserModal').modal('show');
+            },
+            error: function(xhr) {
+                let errorMsg = 'Failed to load user details';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showToast('Error', errorMsg, 'danger');
+            }
+        });
+    });
+    
+    // Edit user form submission
+    $('#editUserForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const username = $('#username').val();
+        const email = $('#email').val();
+        const active = $('#active').is(':checked');
+        
+        // Get permissions based on user type
+        let permissions = [];
+        if ($('#userType').val() === 'admin') {
+            permissions = ['ADMIN'];
+        } else {
+            $('.permission-checkbox:checked').each(function() {
+                permissions.push($(this).val());
+            });
+        }
+        
+        // Update user via API
+        $.ajax({
+            url: `/api/admin/users/${username}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                email: email,
+                active: active,
+                permissions: permissions
+            }),
+            success: function(response) {
+                // Close modal and show success message
+                $('#editUserModal').modal('hide');
+                showToast('Success', `User "${username}" updated successfully`, 'success');
+                
+                // Reload user list
+                loadUsers();
+            },
+            error: function(xhr) {
+                let errorMsg = 'Failed to update user';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showToast('Error', errorMsg, 'danger');
+            }
+        });
+    });
+    
+    // Load available role templates
+    function loadRoleTemplates() {
+        $.ajax({
+            url: '/api/admin/roles',
+            type: 'GET',
+            success: function(roles) {
+                // Clear and populate role template dropdown
+                const roleTemplateSelect = $('#roleTemplate');
+                roleTemplateSelect.empty();
+                
+                // Add option for custom permissions
+                roleTemplateSelect.append(new Option('Custom (Select Individual Permissions)', 'custom'));
+                
+                // Add all role templates
+                for (const [name, data] of Object.entries(roles)) {
+                    roleTemplateSelect.append(new Option(name, name));
+                }
+                
+                // Set default template
+                roleTemplateSelect.val('ReadOnly').trigger('change');
+                
+                // Now that we have roles, load users
+                loadUsers();
+            },
+            error: function(xhr) {
+                let errorMsg = 'Failed to load role templates';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showToast('Error', errorMsg, 'danger');
+            }
+        });
+    }
+    
+    // Apply permissions based on selected role template
+    function applyRoleTemplate(template) {
+        if (template === 'custom') {
+            // Do nothing, let user select permissions manually
+            return;
+        }
+        
+        // Get template permissions from API
+        $.ajax({
+            url: `/api/admin/roles/${template}`,
+            type: 'GET',
+            success: function(role) {
+                // Reset all checkboxes
+                $('.permission-checkbox').prop('checked', false);
+                
+                // Set checkboxes based on template permissions
+                for (const permission of role.permissions) {
+                    $(`.permission-checkbox[value="${permission}"]`).prop('checked', true);
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = 'Failed to load role template permissions';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showToast('Error', errorMsg, 'danger');
+            }
+        });
+    }
+    
+    // Find matching role template based on user permissions
+    function findMatchingRoleTemplate(userPermissions) {
+        $.ajax({
+            url: '/api/admin/roles/permissions',
+            type: 'GET',
+            success: function(rolePermissions) {
+                let bestMatch = 'custom';
+                let bestMatchCount = 0;
+                
+                // Check each role template for permission match
+                for (const [roleName, permissions] of Object.entries(rolePermissions)) {
+                    // Skip Administrator role
+                    if (roleName === 'Administrator') continue;
+                    
+                    // Count matching permissions
+                    const matchCount = permissions.filter(p => userPermissions.includes(p)).length;
+                    const totalPerms = permissions.length;
+                    
+                    // If all template permissions match and this is more than our previous best match
+                    if (matchCount === totalPerms && matchCount > bestMatchCount) {
+                        bestMatch = roleName;
+                        bestMatchCount = matchCount;
+                    }
+                }
+                
+                // Apply best matching template (or custom if no match)
+                $('#roleTemplate').val(bestMatch).trigger('change');
+                
+                // If custom, manually set checkboxes
+                if (bestMatch === 'custom') {
+                    $('.permission-checkbox').prop('checked', false);
+                    for (const permission of userPermissions) {
+                        $(`.permission-checkbox[value="${permission}"]`).prop('checked', true);
+                    }
+                }
+            },
+            error: function(xhr) {
+                showToast('Error', 'Failed to match role template', 'danger');
+                
+                // Fallback to manually setting checkboxes
+                $('.permission-checkbox').prop('checked', false);
+                for (const permission of userPermissions) {
+                    $(`.permission-checkbox[value="${permission}"]`).prop('checked', true);
+                }
+            }
+        });
+    }
+    
+    // Load users from API
+    function loadUsers() {
+        $.ajax({
+            url: '/api/admin/users',
+            type: 'GET',
+            success: function(users) {
+                // Clear existing table
+                usersTable.clear();
+                
+                // Add users to table
+                for (const user of users) {
+                    // Format permissions as badge list (limit to first 3)
+                    const permissionCount = user.permissions.length;
+                    const visiblePermissions = user.permissions.slice(0, 3);
+                    
+                    const permissionBadges = visiblePermissions.map(perm => 
+                        `<span class="badge bg-secondary me-1">${perm}</span>`
+                    ).join('');
+                    
+                    const extraBadge = permissionCount > 3 ? 
+                        `<span class="badge bg-info">+${permissionCount - 3} more</span>` : '';
+                    
+                    // Role badge
+                    const roleBadge = user.role ? 
+                        `<span class="badge bg-primary">${user.role}</span>` : 
+                        '<span class="badge bg-secondary">No Role</span>';
+                    
+                    // Status badge
+                    const statusBadge = user.active ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-danger">Inactive</span>';
+                    
+                    const actions = `
+                        <div class="d-flex">
+                            <button class="btn btn-sm btn-primary edit-user-btn me-2" 
+                                    data-user-id="${user.id}" 
+                                    data-username="${user.username}">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="confirmDeleteUser('${user.username}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `;
+                    
+                    usersTable.row.add([
+                        user.id,
+                        user.username,
+                        user.email,
+                        statusBadge,
+                        roleBadge,
+                        `<div>${permissionBadges} ${extraBadge}</div>`,
+                        actions
+                    ]);
+                }
+                
+                usersTable.draw();
+            },
+            error: function(xhr) {
+                let errorMsg = 'Failed to load users';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showToast('Error', errorMsg, 'danger');
+            }
+        });
+    }
+    
+    // Helper function to show toast notifications
+    function showToast(title, message, type) {
+        const toast = `
+            <div class="toast align-items-center text-white bg-${type} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>${title}:</strong> ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        const toastContainer = $('#toastContainer');
+        toastContainer.append(toast);
+        
+        const toastElement = toastContainer.find('.toast').last();
+        const bsToast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: 5000
+        });
+        
+        bsToast.show();
+        
+        // Remove toast from DOM after it's hidden
+        toastElement.on('hidden.bs.toast', function() {
+            $(this).remove();
+        });
+    }
+    
+    // Select/Deselect all permissions
+    $('.select-all-permissions').on('click', function() {
+        $('.permission-checkbox').prop('checked', true);
+        // Set role template to 'custom'
+        $('#roleTemplate').val('custom');
+    });
+    
+    $('.deselect-all-permissions').on('click', function() {
+        $('.permission-checkbox').prop('checked', false);
+        // Set role template to 'custom'
+        $('#roleTemplate').val('custom');
+    });
+});
+
+async function loadRolePermissions() {
+    try {
+        const response = await fetch('/api/admin/roles/permissions');
+        if (!response.ok) throw new Error('Failed to fetch role permissions');
+        rolePermissions = await response.json();
+    } catch (error) {
+        console.error('Error loading role permissions:', error);
+    }
+}
+
+function toggleUserType() {
+    const isAdmin = document.getElementById('userTypeAdmin').checked;
+    const permissionsSection = document.getElementById('userPermissionsSection');
+    
+    if (isAdmin) {
+        permissionsSection.style.display = 'none';
+        // Check the admin permission and uncheck all others
+        document.querySelectorAll('.permission-checkbox').forEach(cb => {
+            if (cb.value === 'ADMIN') {
+                cb.checked = true;
+            } else {
+                cb.checked = false;
+            }
+        });
+    } else {
+        permissionsSection.style.display = 'block';
+        // Uncheck the admin permission
+        document.querySelectorAll('.permission-checkbox').forEach(cb => {
+            if (cb.value === 'ADMIN') {
+                cb.checked = false;
+            }
+        });
+    }
+}
+
+function applyRoleTemplate() {
+    const templateName = document.getElementById('roleTemplate').value;
+    
+    // Clear all checkboxes first
+    document.querySelectorAll('.permission-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    if (!templateName) return; // No template selected
+    
+    // Apply template permissions
+    if (roleTemplates[templateName]) {
+        const permissions = roleTemplates[templateName].permissions;
+        permissions.forEach(perm => {
+            const checkbox = document.querySelector(`input[value="${perm}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+        
+        // If it's the Administrator template, switch to admin user type
+        if (templateName === 'Administrator') {
+            document.getElementById('userTypeAdmin').checked = true;
+            toggleUserType();
+        } else {
+            document.getElementById('userTypeUser').checked = true;
+            toggleUserType();
+        }
+    }
+}
+
+function editUser(username) {
+    // Reset form
+    document.getElementById('editUserForm').reset();
+    document.getElementById('username').value = username;
+    
+    // Clear all checkboxes
+    document.querySelectorAll('.permission-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    // Reset role template dropdown
+    document.getElementById('roleTemplate').value = '';
+    
+    // Set to user type by default
+    document.getElementById('userTypeUser').checked = true;
+    toggleUserType();
+    
+    // Fetch user data
+    fetch(`/api/admin/users/${username}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('email').value = data.email;
+            document.getElementById('active').checked = data.active;
+            
+            // Check if user is admin
+            if (data.permissions && data.permissions.includes('ADMIN')) {
+                document.getElementById('userTypeAdmin').checked = true;
+                toggleUserType();
+            } else {
+                document.getElementById('userTypeUser').checked = true;
+                toggleUserType();
+                
+                // Set individual permissions
+                if (data.permissions) {
+                    data.permissions.forEach(perm => {
+                        const checkbox = document.querySelector(`input[value="${perm}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                    
+                    // Try to determine if user matches a role template
+                    detectRoleTemplate(data.permissions);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user data:', error);
+            showAlert('danger', 'Failed to load user data. Please try again.');
+        });
+        
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    modal.show();
+}
+
+function detectRoleTemplate(userPermissions) {
+    // Try to match user permissions with a role template
+    for (const [template, data] of Object.entries(roleTemplates)) {
+        if (template === 'Administrator') continue; // Skip admin template
+        
+        const templatePerms = data.permissions;
+        // Check if all template permissions are in user permissions
+        const allMatch = templatePerms.every(perm => userPermissions.includes(perm));
+        // Check if user has exactly the same permissions as the template
+        const exactMatch = templatePerms.length === userPermissions.length && 
+                          allMatch;
+        
+        if (exactMatch) {
+            document.getElementById('roleTemplate').value = template;
+            return;
+        }
+    }
+    
+    // If no exact match, set to custom
+    document.getElementById('roleTemplate').value = '';
+}
+
+function saveUser() {
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const active = document.getElementById('active').checked;
+    const isAdmin = document.getElementById('userTypeAdmin').checked;
+    
+    // Collect permissions
+    let permissions = [];
+    if (isAdmin) {
+        permissions = ['ADMIN']; // Admin has all permissions
+    } else {
+        document.querySelectorAll('.permission-checkbox:checked').forEach(cb => {
+            permissions.push(cb.value);
+        });
+    }
+    
+    // Prepare data
+    const userData = {
+        email: email,
+        active: active,
+        permissions: permissions
+    };
+    
+    // Update user via API
+    fetch(`/api/admin/users/${username}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to update user');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Close modal and reload page
+        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+        showToast('Success', `User ${username} updated successfully.`, 'success');
+        setTimeout(() => location.reload(), 1500);
+    })
+    .catch(error => {
+        console.error('Error updating user:', error);
+        showToast('Error', error.message, 'danger');
+    });
+}
+
+function showAddUserModal() {
+    // Reset form
+    document.getElementById('editUserForm').reset();
+    document.getElementById('username').value = '';
+    
+    // Change modal title
+    document.querySelector('#editUserModal .modal-title').textContent = 'Add New User';
+    
+    // Show username field (which is normally hidden in edit mode)
+    const usernameField = document.createElement('div');
+    usernameField.className = 'mb-3';
+    usernameField.innerHTML = `
+        <label class="form-label">Username</label>
+        <input type="text" class="form-control" id="usernameInput" name="usernameInput" required>
+    `;
+    
+    // Add password field
+    const passwordField = document.createElement('div');
+    passwordField.className = 'mb-3';
+    passwordField.innerHTML = `
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" id="passwordInput" name="passwordInput" required>
+    `;
+    
+    // Add these fields to the form after the hidden username field
+    const emailField = document.querySelector('#email').closest('.mb-3');
+    emailField.parentNode.insertBefore(usernameField, emailField);
+    emailField.parentNode.insertBefore(passwordField, emailField.nextSibling);
+    
+    // Set user type to regular user by default
+    document.getElementById('userTypeUser').checked = true;
+    toggleUserType();
+    
+    // Change save button action
+    const saveButton = document.querySelector('#editUserModal .btn-primary');
+    saveButton.onclick = addUser;
+    saveButton.textContent = 'Create User';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    modal.show();
+    
+    // Add event listener to remove the added fields when modal is closed
+    document.getElementById('editUserModal').addEventListener('hidden.bs.modal', function(event) {
+        // Remove the added fields
+        if (document.getElementById('usernameInput')) {
+            document.getElementById('usernameInput').closest('.mb-3').remove();
+        }
+        if (document.getElementById('passwordInput')) {
+            document.getElementById('passwordInput').closest('.mb-3').remove();
+        }
+        
+        // Reset modal title and save button
+        document.querySelector('#editUserModal .modal-title').textContent = 'Edit User';
+        const saveButton = document.querySelector('#editUserModal .btn-primary');
+        saveButton.onclick = saveUser;
+        saveButton.textContent = 'Save Changes';
+    }, { once: true });
+}
+
+function addUser() {
+    // Get values from form
+    const username = document.getElementById('usernameInput').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('passwordInput').value;
+    const active = document.getElementById('active').checked;
+    const isAdmin = document.getElementById('userTypeAdmin').checked;
+    
+    // Validate required fields
+    if (!username || !email || !password) {
+        showToast('Error', 'Please fill in all required fields.', 'danger');
+        return;
+    }
+    
+    // Collect permissions
+    let permissions = [];
+    if (isAdmin) {
+        permissions = ['ADMIN']; // Admin has all permissions
+    } else {
+        document.querySelectorAll('.permission-checkbox:checked').forEach(cb => {
+            permissions.push(cb.value);
+        });
+    }
+    
+    // Prepare data
+    const userData = {
+        username: username,
+        email: email,
+        password: password,
+        active: active,
+        permissions: permissions
+    };
+    
+    // Send create request
+    fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to create user');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Close modal and reload page
+        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+        showToast('Success', `User ${username} created successfully.`, 'success');
+        setTimeout(() => location.reload(), 1500);
+    })
+    .catch(error => {
+        console.error('Error creating user:', error);
+        showToast('Error', error.message, 'danger');
+    });
+}
+
+function showImportModal() {
+    new bootstrap.Modal(document.getElementById('importModal')).show();
+}
+
+async function importUsers() {
+    const fileInput = document.getElementById('importFile');
+    if (!fileInput.files[0]) {
+        showToast('Error', 'Please select a file', 'danger');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    
+    try {
+        const response = await fetch('/api/admin/users/import', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to import users');
+        }
+        
+        const result = await response.json();
+        showToast('Success', `Imported ${result.created_users.length} users. ${result.errors.length ? 'Errors: ' + result.errors.length + ' entries' : ''}`, 'success');
+        
+        // Close modal and refresh page
+        bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+        setTimeout(() => location.reload(), 1500);
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error', error.message, 'danger');
+    }
+}
+
+async function exportUsers() {
+    try {
+        window.location.href = '/api/admin/users/export';
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error', 'Failed to export users', 'danger');
+    }
+}
+
+function downloadTemplate() {
+    const template = 'username,email,password,active,role\nuser1,user1@example.com,user,true,role1\n';
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'users_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+function confirmDeleteUser(username) {
+    // Set the username in the modal
+    document.getElementById('deleteUserName').textContent = username;
+    
+    // Set up the confirm button action
+    document.getElementById('confirmDeleteBtn').onclick = function() {
+        deleteUser(username);
+    };
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    modal.show();
+}
+
+function deleteUser(username) {
+    fetch(`/api/admin/users/${username}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to delete user');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Close modal and reload page
+        bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+        showToast('Success', `User ${username} deleted successfully.`, 'success');
+        setTimeout(() => location.reload(), 1500);
+    })
+    .catch(error => {
+        console.error('Error deleting user:', error);
+        showToast('Error', error.message, 'danger');
+        bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const roleTemplateSelect = document.getElementById('roleTemplate');
+    
+    roleTemplateSelect.addEventListener('change', async function() {
+        const templateName = this.value;
+        if (!templateName) return; // Custom selected
+        
+        try {
+            const response = await fetch(`/api/admin/roles/templates/${templateName}`);
+            const data = await response.json();
+            
+            // Reset all checkboxes
+            document.querySelectorAll('input[type="checkbox"][name="permissions"]')
+                .forEach(cb => cb.checked = false);
+            
+            // Set checkboxes based on template permissions
+            data.permissions.forEach(permission => {
+                const cb = document.querySelector(`input[value="${permission}"]`);
+                if (cb) cb.checked = true;
+            });
+        } catch (error) {
+            console.error('Error loading template permissions:', error);
+            alert('Failed to load template permissions');
+        }
+    });
+    
+    loadRolePermissions();
+});
+</script>
+{% endblock %}

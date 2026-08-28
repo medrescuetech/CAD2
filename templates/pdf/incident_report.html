@@ -1,0 +1,136 @@
+{% extends "pdf_base.html" %}
+
+{% block title %}Incident Report #{{ incident.incident_number }}{% endblock %}
+
+{% block content %}
+<div class="report">
+    <h1>Incident Report #{{ incident.incident_number }}</h1>
+    
+    <section class="incident-details">
+        <h2>Incident Details</h2>
+        <table>
+            <tr>
+                <th>Date/Time:</th>
+                <td>{{ incident.created_at }}</td>
+            </tr>
+            <tr>
+                <th>Location:</th>
+                <td>{{ incident.location }}</td>
+            </tr>
+            <tr>
+                <th>Type:</th>
+                <td>{{ incident.incident_type }}</td>
+            </tr>
+            <tr>
+                <th>Priority:</th>
+                <td class="priority-{{ incident.priority }}">{{ incident.priority_string }}</td>
+            </tr>
+            <tr>
+                <th>Status:</th>
+                <td class="status-{{ incident.status }}">{{ incident.status }}</td>
+            </tr>
+            <tr>
+                <th>Caller:</th>
+                <td>{{ incident.caller or 'Not provided' }}</td>
+            </tr>
+            <tr>
+                <th>Callback Number:</th>
+                <td>{{ incident.callback_number or 'Not provided' }}</td>
+            </tr>
+            {% if incident.ampds_code %}
+            <tr>
+                <th>AMPDS Code:</th>
+                <td>{{ incident.ampds_code }}</td>
+            </tr>
+            {% endif %}
+            {% if protocol %}
+            <tr>
+                <th>Protocol Category:</th>
+                <td>{{ protocol.category }}</td>
+            </tr>
+            <tr>
+                <th>Protocol Sub-Category:</th>
+                <td>{{ protocol.subcategory }}</td>
+            </tr>
+            <tr>
+                <th>Protocol Priority:</th>
+                <td class="protocol-priority-{{ protocol.priority|lower }}">{{ protocol.priority }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th>Description:</th>
+                <td>{{ incident.description }}</td>
+            </tr>
+            {% if incident.resolution %}
+            <tr>
+                <th>Resolution:</th>
+                <td>{{ incident.resolution }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </section>
+    
+    <section class="unit-assignments">
+        <h2>Unit Assignments</h2>
+        {% if assignments %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Unit</th>
+                    <th>Status</th>
+                    <th>Assigned Time</th>
+                    <th>Arrived Time</th>
+                    <th>Cleared Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                    <td>{{ assignment.unit_number }}</td>
+                    <td>{{ assignment.status }}</td>
+                    <td>{{ assignment.assigned_at }}</td>
+                    <td>{{ assignment.arrived_at or 'N/A' }}</td>
+                    <td>{{ assignment.cleared_at or 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No units were assigned to this incident.</p>
+        {% endif %}
+    </section>
+    
+    <section class="incident-log">
+        <h2>Incident Log</h2>
+        {% if logs %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Message</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.log_type }}</td>
+                    <td>{{ log.message }}</td>
+                    <td>{{ log.created_by_name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No log entries for this incident.</p>
+        {% endif %}
+    </section>
+    
+    <div class="footer">
+        <p>Generated on: {{ generated_at }} by {{ generated_by }}</p>
+        <p>CAD System - Confidential</p>
+    </div>
+</div>
+{% endblock %}

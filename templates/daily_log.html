@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Log{% endblock %}
+
+{% block styles %}
+<style>
+.log-container {
+    height: calc(100vh - 250px);
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.log-entry {
+    padding: 8px;
+    border-bottom: 1px solid #dee2e6;
+    font-family: monospace;
+}
+
+.log-entry:hover {
+    background-color: #e9ecef;
+}
+
+.log-timestamp {
+    color: #6c757d;
+    margin-right: 10px;
+}
+
+.log-type {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.log-text {
+    margin-right: 10px;
+}
+
+.log-user {
+    color: #0d6efd;
+}
+
+.quick-entry {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.quick-entry input {
+    flex-grow: 1;
+}
+
+.type-GENERAL { color: #6c757d; }
+.type-RADIO_MESSAGE { color: #0dcaf0; }
+.type-SECURITY { color: #dc3545; }
+.type-EMERGENCY { color: #dc3545; font-weight: bold; }
+.type-TRAFFIC { color: #ffc107; }
+.type-PATROL { color: #198754; }
+.type-MEDICAL { color: #0d6efd; }
+.type-ADMINISTRATIVE { color: #6610f2; }
+.type-REPORT { color: #20c997; }
+.type-INCIDENT { color: #fd7e14; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h4>Daily Log - {{ current_log.log_number if current_log else 'No Active Log' }}</h4>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="DailyLogManager.saveLog()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="btn btn-success" onclick="DailyLogManager.saveLog(true)">
+                    <i class="fas fa-check"></i> Save & Exit
+                </button>
+                <button class="btn btn-info" onclick="DailyLogManager.generatePDF()">
+                    <i class="fas fa-file-pdf"></i> Generate PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <!-- Quick Entry Form -->
+            <form id="quickEntryForm" class="quick-entry">
+                <select class="form-select" style="width: 200px;" id="logType" name="type">
+                    <option value="GENERAL">General</option>
+                    <option value="RADIO_MESSAGE">Radio Message</option>
+                    <option value="SECURITY">Security</option>
+                    <option value="EMERGENCY">Emergency</option>
+                    <option value="TRAFFIC">Traffic</option>
+                    <option value="PATROL">Patrol</option>
+                    <option value="MEDICAL">Medical</option>
+                    <option value="ADMINISTRATIVE">Administrative</option>
+                    <option value="REPORT">Report</option>
+                    <option value="INCIDENT">Incident</option>
+                </select>
+                <input type="text" class="form-control" id="logEntry" name="text" placeholder="Enter log entry...">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Entry
+                </button>
+            </form>
+
+            <!-- Log Entries -->
+            <div class="log-container" id="logEntries">
+                {% if current_log and current_log.entries %}
+                    {% for entry in current_log.entries %}
+                    <div class="log-entry">
+                        <span class="log-timestamp">{{ entry.timestamp|format_datetime }}</span>
+                        <span class="log-type type-{{ entry.type }}">{{ entry.type }}</span>
+                        <span class="log-text">{{ entry.text }}</span>
+                        <span class="log-user">{{ entry.user_name }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-muted text-center py-3">No entries yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add log entry
+document.getElementById('quickEntryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const text = document.getElementById('logEntry').value.trim();
+    const type = document.getElementById('logType').value;
+    
+    if (!text) return;
+    
+    DailyLogManager.addLogEntry(text, type);
+});
+
+// Auto-save every 5 minutes
+setInterval(() => DailyLogManager.saveLog(), 300000);
+</script>
+{% endblock %}

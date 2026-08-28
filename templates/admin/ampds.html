@@ -1,0 +1,392 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}AMPDS Data Management{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">AMPDS Data Management</h5>
+            <div>
+                <button type="button" class="btn btn-primary" onclick="showAddCodeDialog()">
+                    <i class="fas fa-plus me-1"></i>Add Code
+                </button>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
+                    <i class="fas fa-file-import me-1"></i>Import CSV
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="exportAmpds()">
+                    <i class="fas fa-download me-1"></i>Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ampds-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="ampdsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">AMPDS Code Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="ampdsForm">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Code</label>
+                        <input type="text" class="form-control" id="code" name="code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="category" name="category" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <select class="form-select" id="priority" name="priority" required>
+                            <option value="HIGH">High</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="LOW">Low</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="advice" class="form-label">Dispatch Advice (Optional)</label>
+                        <textarea class="form-control" id="advice" name="advice" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCode()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import AMPDS Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm" action="{{ url_for('admin.import_ampds_protocols') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">CSV File</label>
+                        <input type="file" class="form-control" id="importFile" name="file" accept=".csv" required>
+                        <div class="form-text">
+                            CSV must have the following columns: unique_id, category, subcategory, card_number, priority, dispatch_advice
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> The import process will:
+                        <ul class="mb-0 mt-2">
+                            <li>Create new protocols if the unique_id doesn't exist</li>
+                            <li>Update existing protocols if the unique_id already exists</li>
+                        </ul>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let ampdsModal;
+let socket; // WebSocket connection
+
+document.addEventListener('DOMContentLoaded', function() {
+    ampdsModal = new bootstrap.Modal(document.getElementById('ampdsModal'));
+    
+    // Initialize WebSocket connection
+    initializeWebSocket();
+});
+
+function initializeWebSocket() {
+    socket = io();
+    
+    // Listen for AMPDS protocol events
+    socket.on('ampds_protocols', function(data) {
+        updateAmpdsTable(data.protocols);
+    });
+    
+    socket.on('ampds_protocol_created', function(data) {
+        showAlert('success', 'AMPDS protocol created successfully');
+        // Request full refresh to ensure table is up-to-date
+        socket.emit('get_ampds_protocols');
+    });
+    
+    socket.on('ampds_protocol_updated', function(data) {
+        showAlert('success', 'AMPDS protocol updated successfully');
+        // Request full refresh to ensure table is up-to-date
+        socket.emit('get_ampds_protocols');
+    });
+    
+    socket.on('ampds_protocol_deleted', function(data) {
+        showAlert('success', 'AMPDS protocol deleted successfully');
+        // Request full refresh to ensure table is up-to-date
+        socket.emit('get_ampds_protocols');
+    });
+    
+    // Standard error handling
+    socket.on('error', function(error) {
+        let errorMessage = error.message || 'An unknown error occurred';
+        if (error.details) {
+            errorMessage += ': ' + error.details;
+        }
+        showAlert('error', errorMessage);
+    });
+    
+    // Initial load of protocols
+    socket.emit('get_ampds_protocols');
+}
+
+function updateAmpdsTable(protocols) {
+    const tbody = document.querySelector('table tbody');
+    tbody.innerHTML = '';
+    
+    if (protocols && protocols.length > 0) {
+        protocols.forEach(code => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${code.unique_id}</td>
+                <td>${code.subcategory || code.description}</td>
+                <td>${code.category || ''}</td>
+                <td>
+                    <span class="badge bg-${(code.priority || '').toLowerCase()}">
+                        ${code.priority || ''}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="editCode('${code.unique_id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteCode('${code.unique_id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } else {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="5" class="text-center">No AMPDS codes found</td>';
+        tbody.appendChild(row);
+    }
+}
+
+function editCode(code) {
+    // First try WebSocket
+    try {
+        setLoading(true);
+        
+        fetch(`/api/ampds/${code}`)
+            .then(response => {
+                if (!response.ok) {
+                    handleApiError(response);
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return;
+                
+                document.getElementById('code').value = data.unique_id;
+                document.getElementById('description').value = data.subcategory || data.description || '';
+                document.getElementById('category').value = data.category || '';
+                document.getElementById('priority').value = data.priority || 'MEDIUM';
+                document.getElementById('advice').value = data.dispatch_advice || '';
+                
+                // Set code field as read-only when editing
+                document.getElementById('code').readOnly = true;
+                
+                document.querySelector('#ampdsModal .modal-title').textContent = 'Edit AMPDS Code';
+                ampdsModal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', error.message || 'Failed to load AMPDS code details');
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('error', error.message || 'An unexpected error occurred');
+        setLoading(false);
+    }
+}
+
+function saveCode() {
+    const form = document.getElementById('ampdsForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    setLoading(true);
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    const code = data.code;
+    const isEdit = document.getElementById('code').readOnly;
+    
+    // Prepare data for WebSocket event
+    const protocolData = {
+        unique_id: data.code,
+        description: data.description,
+        category: data.category,
+        priority: data.priority,
+        color: getPriorityColor(data.priority),
+        dispatch_advice: data.advice
+    };
+    
+    // Use WebSocket for more responsive UI
+    if (isEdit) {
+        socket.emit('update_ampds_protocol', protocolData);
+    } else {
+        socket.emit('create_ampds_protocol', protocolData);
+    }
+    
+    // Close the modal
+    ampdsModal.hide();
+    setLoading(false);
+    
+    // Clear the form
+    form.reset();
+    document.getElementById('code').readOnly = false;
+}
+
+function deleteCode(code) {
+    if (confirm('Are you sure you want to delete this AMPDS code? This action cannot be undone.')) {
+        setLoading(true);
+        
+        // Use WebSocket for real-time updates
+        socket.emit('delete_ampds_protocol', { unique_id: code });
+        
+        setLoading(false);
+    }
+}
+
+function exportAmpds() {
+    try {
+        setLoading(true);
+        window.location.href = "{{ url_for('admin.export_ampds_protocols') }}";
+        setLoading(false);
+    } catch (error) {
+        console.error("Error exporting AMPDS data:", error);
+        showAlert("danger", "An error occurred while exporting AMPDS data.");
+        setLoading(false);
+    }
+}
+
+function showAlert(type, message) {
+    const alertContainer = document.getElementById('alert-container');
+    if (!alertContainer) {
+        // Create container if it doesn't exist
+        const container = document.createElement('div');
+        container.id = 'alert-container';
+        container.style.position = 'fixed';
+        container.style.top = '20px';
+        container.style.right = '20px';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+    }
+    
+    const alertId = 'alert-' + Date.now();
+    const alertHtml = `
+        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    document.getElementById('alert-container').innerHTML += alertHtml;
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            const bsAlert = new bootstrap.Alert(alertElement);
+            bsAlert.close();
+        }
+    }, 5000);
+}
+
+function showAddCodeDialog() {
+    // Reset the form
+    document.getElementById('ampdsForm').reset();
+    document.getElementById('code').readOnly = false;
+    
+    document.querySelector('#ampdsModal .modal-title').textContent = 'Add AMPDS Code';
+    ampdsModal.show();
+}
+
+function getPriorityColor(priority) {
+    switch (priority) {
+        case 'HIGH': return 'danger';
+        case 'MEDIUM': return 'warning';
+        case 'LOW': return 'success';
+        default: return 'secondary';
+    }
+}
+
+function setLoading(isLoading) {
+    // Update UI to reflect loading state
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+        button.disabled = isLoading;
+    });
+    
+    // You could also show/hide a loading spinner here
+    const spinner = document.getElementById('loading-spinner');
+    if (spinner) {
+        spinner.style.display = isLoading ? 'block' : 'none';
+    }
+}
+
+function handleApiError(response) {
+    if (response.status === 403) {
+        showAlert('error', 'Permission denied. You do not have access to this resource.');
+        return;
+    }
+    
+    response.json().then(data => {
+        let errorMessage = data.message || 'An error occurred';
+        showAlert('error', errorMessage);
+    }).catch(() => {
+        showAlert('error', 'An unknown error occurred');
+    });
+}
+</script>
+{% endblock %}

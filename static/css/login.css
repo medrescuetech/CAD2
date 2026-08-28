@@ -1,0 +1,95 @@
+/* Login page styles */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-color);
+    margin-top: -6rem; /* Move the container up slightly */
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.login-card .card-header {
+    background-color: var(--primary-color);
+    color: white;
+    border-top-left-radius: var(--border-radius-lg);
+    border-top-right-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.login-card .card-header h5 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.login-card .card-body {
+    padding: 0;
+}
+
+.login-card .form-label {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.login-card .form-control {
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+}
+
+.login-card .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.login-card .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    width: 100%;
+    border-radius: var(--border-radius-md);
+}
+
+.login-card .btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+.login-card .form-check-label {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.login-card .alert {
+    margin-bottom: 1.5rem;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .login-card {
+    background-color: var(--dark-card-bg);
+}
+
+[data-theme="dark"] .login-card .form-control {
+    background-color: var(--dark-input-bg);
+    border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .login-card .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

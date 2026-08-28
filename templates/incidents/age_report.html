@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incident Age Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .incident-info {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .timeline {
+            margin-bottom: 30px;
+        }
+        .timeline-event {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            border-left: 3px solid #007bff;
+        }
+        .stage-durations {
+            margin-bottom: 30px;
+        }
+        .stage {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        .metadata {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Incident Age Report</h1>
+        <h2>Case #{{ incident.number }}</h2>
+    </div>
+
+    <div class="incident-info">
+        <h3>Incident Information</h3>
+        <table>
+            <tr>
+                <th>Location:</th>
+                <td>{{ incident.location }}</td>
+            </tr>
+            <tr>
+                <th>Problem:</th>
+                <td>{{ incident.problem }}</td>
+            </tr>
+            <tr>
+                <th>Priority:</th>
+                <td>{{ incident.priority }}</td>
+            </tr>
+            <tr>
+                <th>Status:</th>
+                <td>{{ incident.status }}</td>
+            </tr>
+            <tr>
+                <th>Total Age:</th>
+                <td>{{ total_age }} minutes</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="stage-durations">
+        <h3>Stage Durations</h3>
+        <table>
+            <tr>
+                <th>Stage</th>
+                <th>Duration (minutes)</th>
+            </tr>
+            {% for stage, duration in stage_durations.items() %}
+            <tr>
+                <td>{{ stage }}</td>
+                <td>{{ "%.2f"|format(duration) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="timeline">
+        <h3>Incident Timeline</h3>
+        {% for event in timeline %}
+        <div class="timeline-event">
+            <strong>{{ event.event }}</strong><br>
+            Time: {{ event.timestamp }}<br>
+            {% if event.details %}
+            Details: {{ event.details }}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="metadata">
+        <p>Report generated at: {{ generated_at }}</p>
+    </div>
+</body>
+</html>

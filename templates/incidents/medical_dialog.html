@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Medical Protocol{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Medical Protocol Selection</h5>
+                    <div>
+                        <button class="btn btn-light btn-sm" onclick="toggleFavorite()">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#shortcutsModal">
+                            <i class="fas fa-keyboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="protocolForm">
+                        <!-- Quick Search -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="quickSearch" 
+                                           placeholder="Search by card number or keyword...">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showRecent()">
+                                        <i class="fas fa-history"></i> Recent
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showFavorites()">
+                                        <i class="fas fa-star"></i> Favorites
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Protocol Selection -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="cardNumber" class="form-label">Card Number</label>
+                                <input type="text" class="form-control" id="cardNumber">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">Category</label>
+                                <select class="form-select" id="category" required>
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category }}">{{ category }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="subCategory" class="form-label">Sub-Category</label>
+                                <select class="form-select" id="subCategory" required disabled>
+                                    <option value="">Select Sub-Category</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Protocol Information -->
+                        <div id="protocolInfo" style="display: none;">
+                            <div class="alert alert-info">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">Priority Level</h6>
+                                        <span id="priorityLevel" class="badge bg-warning">Loading...</span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewPreArrivalPDF()">
+                                            <i class="fas fa-file-pdf"></i> Pre-Arrival Instructions
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Dispatch Advice</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p id="dispatchAdvice">Select a protocol to view dispatch advice.</p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Special Instructions</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="specialInstructions">
+                                        Select a protocol to view special instructions.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shortcuts Modal -->
+<div class="modal fade" id="shortcutsModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Keyboard Shortcuts</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <tr>
+                        <td><kbd>Alt</kbd> + <kbd>S</kbd></td>
+                        <td>Focus search</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Alt</kbd> + <kbd>C</kbd></td>
+                        <td>Focus card number</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Alt</kbd> + <kbd>F</kbd></td>
+                        <td>Toggle favorites</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let protocolData = null;
+
+// Load protocol data
+async function loadProtocolData() {
+    try {
+        const response = await fetch('/api/medical/protocols');
+        protocolData = await response.json();
+        populateCategories();
+    } catch (error) {
+        console.error('Error loading protocol data:', error);
+        alert('Error loading protocols. Please try again.');
+    }
+}
+
+// Populate category dropdown
+function populateCategories() {
+    const categorySelect = document.getElementById('category');
+    const categories = [...new Set(protocolData.map(p => p.category))];
+    categorySelect.innerHTML = '<option value="">Select Category</option>' +
+        categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+}
+
+// Handle category change
+document.getElementById('category').addEventListener('change', function() {
+    const subCategorySelect = document.getElementById('subCategory');
+    const selectedCategory = this.value;
+    
+    if (selectedCategory) {
+        const subCategories = protocolData
+            .filter(p => p.category === selectedCategory)
+            .map(p => p.subCategory);
+        
+        subCategorySelect.innerHTML = '<option value="">Select Sub-Category</option>' +
+            subCategories.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+        subCategorySelect.disabled = false;
+    } else {
+        subCategorySelect.innerHTML = '<option value="">Select Sub-Category</option>';
+        subCategorySelect.disabled = true;
+    }
+});
+
+// Handle card number input
+document.getElementById('cardNumber').addEventListener('input', function() {
+    const cardNumber = this.value;
+    const protocol = protocolData.find(p => p.cardNumber === cardNumber);
+    
+    if (protocol) {
+        document.getElementById('category').value = protocol.category;
+        populateSubCategories(protocol.category);
+        document.getElementById('subCategory').value = protocol.subCategory;
+        updateProtocolInfo(protocol);
+    }
+});
+
+// Handle sub-category change
+document.getElementById('subCategory').addEventListener('change', function() {
+    const category = document.getElementById('category').value;
+    const subCategory = this.value;
+    
+    const protocol = protocolData.find(p => 
+        p.category === category && p.subCategory === subCategory
+    );
+    
+    if (protocol) {
+        updateProtocolInfo(protocol);
+    }
+});
+
+// Update protocol information
+function updateProtocolInfo(protocol) {
+    document.getElementById('protocolInfo').style.display = 'block';
+    document.getElementById('priorityLevel').textContent = protocol.priority;
+    document.getElementById('priorityLevel').className = `badge bg-${getPriorityClass(protocol.priority)}`;
+    document.getElementById('dispatchAdvice').textContent = protocol.dispatchAdvice;
+    
+    // Send protocol data to parent window
+    if (window.opener) {
+        window.opener.postMessage({
+            type: 'PROTOCOL_SELECTED',
+            protocol: {
+                category: protocol.category,
+                subCategory: protocol.subCategory,
+                cardNumber: protocol.cardNumber,
+                priority: protocol.priority,
+                dispatchAdvice: protocol.dispatchAdvice
+            }
+        }, '*');
+    }
+    
+    // Update live log
+    Utils.updateLiveLog({
+        user: '{{ current_user.username }}',
+        message: `Selected protocol: ${protocol.category} - ${protocol.subCategory}`
+    });
+}
+
+function getPriorityClass(priority) {
+    switch (priority.toLowerCase()) {
+        case 'high': return 'danger';
+        case 'medium': return 'warning';
+        case 'low': return 'info';
+        default: return 'secondary';
+    }
+}
+
+// View pre-arrival PDF
+function viewPreArrivalPDF() {
+    const category = document.getElementById('category').value;
+    const subCategory = document.getElementById('subCategory').value;
+    
+    const protocol = protocolData.find(p => 
+        p.category === category && p.subCategory === subCategory
+    );
+    
+    if (protocol && protocol.preArrivalPDF) {
+        window.open(`/static/protocols/${protocol.preArrivalPDF}`, '_blank');
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadProtocolData();
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey) {
+            switch(e.key.toLowerCase()) {
+                case 's':
+                    document.getElementById('quickSearch').focus();
+                    e.preventDefault();
+                    break;
+                case 'c':
+                    document.getElementById('cardNumber').focus();
+                    e.preventDefault();
+                    break;
+                case 'f':
+                    toggleFavorite();
+                    e.preventDefault();
+                    break;
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.badge {
+    font-size: 1em;
+    padding: 0.5em 1em;
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+#protocolInfo {
+    margin-top: 1.5rem;
+}
+
+.btn-group {
+    width: 100%;
+}
+
+.btn-group .btn {
+    flex: 1;
+}
+
+kbd {
+    background-color: #f8f9fa;
+    color: #212529;
+    padding: 0.2em 0.4em;
+    border-radius: 0.2em;
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>User Profile</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Username:</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.username if user else 'Unknown' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Email:</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.email if user else 'Unknown' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Role:</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ role.name if role else 'Unknown' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Last Login:</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.last_login|datetime if user and user.last_login else 'Never' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Permissions:</strong>
+                            <div class="small text-muted mt-1">
+                                <a href="/docs/permissions" target="_blank">View Permissions Guide</a>
+                            </div>
+                        </div>
+                        <div class="col-sm-9">
+                            <ul class="list-unstyled">
+                                {% if role and role.permissions %}
+                                    {% for perm_name in Permission.get_permission_names() %}
+                                        {% if role.permissions|has_permission(getattr(Permission, perm_name)) %}
+                                            <li>
+                                                <i class="fas fa-check text-success"></i> 
+                                                {{ perm_name.replace('_', ' ').title() }}
+                                                <span class="small text-muted">{{ Permission.get_permission_description(perm_name) }}</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <li>No permissions assigned</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Change Password</h3>
+                </div>
+                <div class="card-body">
+                    <form id="passwordForm" data-custom-submit="true">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial profile data
+    socket.emit('get_profile');
+    socket.emit('get_notification_settings');
+    socket.emit('get_map_preferences');
+    socket.emit('get_interface_preferences');
+
+    // Profile form submission
+    const profileForm = document.getElementById('profileForm');
+    profileForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = {
+            first_name: document.getElementById('firstName').value,
+            last_name: document.getElementById('lastName').value,
+            email: document.getElementById('email').value
+        };
+        
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        if (currentPassword && newPassword) {
+            formData.current_password = currentPassword;
+            formData.new_password = newPassword;
+        }
+        
+        socket.emit('update_profile', formData);
+    });
+
+    // Notification settings form
+    const notificationForm = document.getElementById('notificationForm');
+    notificationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const settings = {
+            email_enabled: document.getElementById('emailEnabled').checked,
+            sms_enabled: document.getElementById('smsEnabled').checked,
+            desktop_enabled: document.getElementById('desktopEnabled').checked,
+            incident_alerts: document.getElementById('incidentAlerts').checked,
+            unit_updates: document.getElementById('unitUpdates').checked,
+            system_alerts: document.getElementById('systemAlerts').checked
+        };
+        socket.emit('update_notification_settings', settings);
+    });
+
+    // Map preferences form
+    const mapForm = document.getElementById('mapForm');
+    mapForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const prefs = {
+            default_lat: parseFloat(document.getElementById('defaultLat').value),
+            default_lng: parseFloat(document.getElementById('defaultLng').value),
+            default_zoom: parseInt(document.getElementById('defaultZoom').value),
+            show_units: document.getElementById('showUnits').checked,
+            show_incidents: document.getElementById('showIncidents').checked,
+            show_locations: document.getElementById('showLocations').checked,
+            cluster_markers: document.getElementById('clusterMarkers').checked
+        };
+        socket.emit('update_map_preferences', prefs);
+    });
+
+    // Interface preferences form
+    const interfaceForm = document.getElementById('interfaceForm');
+    interfaceForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const prefs = {
+            theme: document.getElementById('theme').value,
+            font_size: document.getElementById('fontSize').value,
+            compact_view: document.getElementById('compactView').checked,
+            show_timestamps: document.getElementById('showTimestamps').checked,
+            auto_refresh: document.getElementById('autoRefresh').checked,
+            refresh_interval: parseInt(document.getElementById('refreshInterval').value)
+        };
+        socket.emit('update_interface_preferences', prefs);
+    });
+
+    // WebSocket event handlers
+    socket.on('profile_data', function(data) {
+        document.getElementById('firstName').value = data.first_name;
+        document.getElementById('lastName').value = data.last_name;
+        document.getElementById('email').value = data.email;
+    });
+
+    socket.on('notification_settings', function(settings) {
+        document.getElementById('emailEnabled').checked = settings.email_enabled;
+        document.getElementById('smsEnabled').checked = settings.sms_enabled;
+        document.getElementById('desktopEnabled').checked = settings.desktop_enabled;
+        document.getElementById('incidentAlerts').checked = settings.incident_alerts;
+        document.getElementById('unitUpdates').checked = settings.unit_updates;
+        document.getElementById('systemAlerts').checked = settings.system_alerts;
+    });
+
+    socket.on('map_preferences', function(prefs) {
+        document.getElementById('defaultLat').value = prefs.default_lat;
+        document.getElementById('defaultLng').value = prefs.default_lng;
+        document.getElementById('defaultZoom').value = prefs.default_zoom;
+        document.getElementById('showUnits').checked = prefs.show_units;
+        document.getElementById('showIncidents').checked = prefs.show_incidents;
+        document.getElementById('showLocations').checked = prefs.show_locations;
+        document.getElementById('clusterMarkers').checked = prefs.cluster_markers;
+    });
+
+    socket.on('interface_preferences', function(prefs) {
+        document.getElementById('theme').value = prefs.theme;
+        document.getElementById('fontSize').value = prefs.font_size;
+        document.getElementById('compactView').checked = prefs.compact_view;
+        document.getElementById('showTimestamps').checked = prefs.show_timestamps;
+        document.getElementById('autoRefresh').checked = prefs.auto_refresh;
+        document.getElementById('refreshInterval').value = prefs.refresh_interval;
+    });
+
+    socket.on('profile_updated', function() {
+        showAlert('Profile updated successfully', 'success');
+    });
+
+    socket.on('notification_settings_updated', function() {
+        showAlert('Notification settings updated successfully', 'success');
+    });
+
+    socket.on('map_preferences_updated', function() {
+        showAlert('Map preferences updated successfully', 'success');
+    });
+
+    socket.on('interface_preferences_updated', function() {
+        showAlert('Interface preferences updated successfully', 'success');
+        // Apply theme change immediately
+        const theme = document.getElementById('theme').value;
+        document.body.setAttribute('data-theme', theme);
+    });
+
+    socket.on('error', function(data) {
+        showAlert(data.message, 'error');
+    });
+});
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.textContent = message;
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

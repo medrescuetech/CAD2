@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card shadow-lg border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-database-x"></i> Database Schema Error
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading">Database Schema Mismatch Detected</h4>
+                        <p>The application's model definitions don't match the actual database schema. This is usually caused by missing database migrations or schema updates.</p>
+                    </div>
+                    
+                    <h5 class="text-danger">Error Details:</h5>
+                    <div class="bg-light p-3 rounded mb-4">
+                        <code>{{ error }}</code>
+                    </div>
+                    
+                    <h5>Possible Solutions:</h5>
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item">
+                            <strong>Run Database Migrations:</strong> 
+                            <code>flask db migrate</code> followed by <code>flask db upgrade</code>
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Check Model Definitions:</strong> 
+                            Ensure your models match the current database schema
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Contact System Administrator:</strong> 
+                            If you don't have access to manage database migrations
+                        </li>
+                    </ul>
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                            <i class="bi bi-arrow-clockwise"></i> Return to Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

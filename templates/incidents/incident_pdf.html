@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incident Report #{{ incident.number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            background-color: #f0f0f0;
+            padding: 5px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .info-item {
+            margin-bottom: 5px;
+        }
+        .label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .timeline {
+            border-left: 2px solid #ccc;
+            padding-left: 20px;
+            margin-left: 10px;
+        }
+        .timeline-item {
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #ccc;
+            border-radius: 50%;
+            position: absolute;
+            left: -26px;
+            top: 5px;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .medical-data {
+            background-color: #fff8f8;
+            border: 1px solid #ffdddd;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Incident Report #{{ incident.number }}</h1>
+        <p>Generated on {{ generated_at }}</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Incident Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">Created:</span>
+                <span>{{ incident.created_at }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Status:</span>
+                <span>{{ incident.status }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Location:</span>
+                <span>{{ incident.location }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Problem:</span>
+                <span>{{ incident.problem }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Priority:</span>
+                <span>{{ incident.priority }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Caller:</span>
+                <span>{{ incident.caller_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Callback Number:</span>
+                <span>{{ incident.callback_number }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if incident.medical_data %}
+    <div class="section">
+        <div class="section-title">Medical Information</div>
+        <div class="medical-data">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Chief Complaint:</span>
+                    <span>{{ incident.medical_data.chief_complaint }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Age:</span>
+                    <span>{{ incident.medical_data.age }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Gender:</span>
+                    <span>{{ incident.medical_data.gender }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Consciousness:</span>
+                    <span>{{ incident.medical_data.consciousness }}</span>
+                </div>
+            </div>
+            
+            {% if incident.medical_data.vitals %}
+            <div class="section-title">Vitals</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Blood Pressure:</span>
+                    <span>{{ incident.medical_data.vitals.blood_pressure }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Heart Rate:</span>
+                    <span>{{ incident.medical_data.vitals.heart_rate }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Respiratory Rate:</span>
+                    <span>{{ incident.medical_data.vitals.respiratory_rate }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">SpO2:</span>
+                    <span>{{ incident.medical_data.vitals.spo2 }}</span>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <span class="label">History:</span>
+                <span>{{ incident.medical_data.history }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Medications:</span>
+                <span>{{ incident.medical_data.medications }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Allergies:</span>
+                <span>{{ incident.medical_data.allergies }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <div class="section-title">Assigned Units</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Unit</th>
+                    <th>Status</th>
+                    <th>Assigned At</th>
+                    <th>Updated At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unit in assigned_units %}
+                <tr>
+                    <td>{{ unit.name }}</td>
+                    <td>{{ unit.status }}</td>
+                    <td>{{ unit.assigned_at }}</td>
+                    <td>{{ unit.updated_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Incident Timeline</div>
+        <div class="timeline">
+            {% for entry in log %}
+            <div class="timeline-item">
+                <div class="timestamp">{{ entry.timestamp }}</div>
+                <div>{{ entry.message }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

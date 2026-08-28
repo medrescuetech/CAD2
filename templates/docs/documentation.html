@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('profile') }}">Profile</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>{{ title }}</h2>
+                </div>
+                <div class="card-body documentation-content">
+                    {{ content|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.documentation-content {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.documentation-content h1,
+.documentation-content h2,
+.documentation-content h3,
+.documentation-content h4 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.documentation-content h1 { font-size: 2rem; }
+.documentation-content h2 { font-size: 1.75rem; }
+.documentation-content h3 { font-size: 1.5rem; }
+.documentation-content h4 { font-size: 1.25rem; }
+
+.documentation-content p {
+    margin-bottom: 1rem;
+}
+
+.documentation-content ul,
+.documentation-content ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+.documentation-content code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.2rem;
+    font-size: 0.875em;
+}
+
+.documentation-content pre {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.3rem;
+    overflow-x: auto;
+}
+
+.documentation-content a {
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.documentation-content a:hover {
+    text-decoration: underline;
+}
+
+.documentation-content blockquote {
+    border-left: 4px solid #dee2e6;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #6c757d;
+}
+
+.documentation-content table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+
+.documentation-content th,
+.documentation-content td {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+}
+
+.documentation-content th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

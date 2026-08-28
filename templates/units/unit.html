@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Unit {{ unit.unit_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Unit {{ unit.unit_number }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Status</h6>
+                            <p><span class="badge bg-{{ unit.status_class }}">{{ unit.status }}</span></p>
+                            
+                            <h6>Type</h6>
+                            <p>{{ unit.type }}</p>
+                            
+                            <h6>Station</h6>
+                            <p>{{ unit.station }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Current Assignment</h6>
+                            {% if current_assignment %}
+                            <p>
+                                <a href="{{ url_for('pages.incident_detail', incident_id=current_assignment.incident_id) }}">
+                                    Incident #{{ current_assignment.incident_id }}
+                                </a>
+                            </p>
+                            {% else %}
+                            <p>No current assignment</p>
+                            {% endif %}
+                            
+                            <h6>Last Status Change</h6>
+                            <p>{{ unit.last_status_change|format_datetime }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if unit.status != 'Available' %}
+                        <button class="btn btn-success" onclick="updateUnitStatus('{{ unit.id }}', 'Available')">
+                            Mark Available
+                        </button>
+                        {% endif %}
+                        {% if unit.status != 'Out of Service' %}
+                        <button class="btn btn-danger" onclick="updateUnitStatus('{{ unit.id }}', 'Out of Service')">
+                            Mark Out of Service
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function updateUnitStatus(unitId, newStatus) {
+    fetch('/api/units/status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            unit_id: unitId,
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}
+{% endblock %}

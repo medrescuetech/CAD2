@@ -1,0 +1,40 @@
+{% extends "email/base.html" %}
+
+{% block title %}Incident {{ incident.incident_number }} - {{ notification_type|capitalize }}{% endblock %}
+
+{% block header %}Incident {{ notification_type|capitalize }}: {{ incident.incident_number }}{% endblock %}
+
+{% block content %}
+<p>Hello {{ user.first_name }},</p>
+
+{% if notification_type == 'created' %}
+<p>A new incident has been created in the CAD system:</p>
+{% elif notification_type == 'updated' %}
+<p>An incident in the CAD system has been updated:</p>
+{% elif notification_type == 'closed' %}
+<p>An incident in the CAD system has been closed:</p>
+{% endif %}
+
+<div style="margin: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 5px;">
+    <h2>Incident #{{ incident.incident_number }}</h2>
+    <p><strong>Type:</strong> {{ incident.incident_type }}</p>
+    <p><strong>Priority:</strong> <span class="priority-{{ incident.priority|lower }}">{{ incident.get_priority_string() }}</span></p>
+    <p><strong>Location:</strong> {{ incident.location }}</p>
+    <p><strong>Status:</strong> {{ incident.status }}</p>
+    {% if incident.description %}
+    <p><strong>Description:</strong> {{ incident.description }}</p>
+    {% endif %}
+    <p class="timestamp">{{ timestamp }}</p>
+</div>
+
+<p>You can view the full incident details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ url }}" class="button">View Incident Details</a>
+</p>
+
+<p>Thank you for your attention to this matter.</p>
+
+<p>Regards,<br>
+CAD System</p>
+{% endblock %}

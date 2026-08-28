@@ -1,0 +1,250 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Reports</h1>
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Incident Reports</h5>
+                    <p class="card-text">View and generate incident reports</p>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            Generate Report
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-report="daily">Daily Summary</a></li>
+                            <li><a class="dropdown-item" href="#" data-report="weekly">Weekly Summary</a></li>
+                            <li><a class="dropdown-item" href="#" data-report="monthly">Monthly Summary</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-report="custom">Custom Range</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Unit Reports</h5>
+                    <p class="card-text">View and generate unit activity reports</p>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            Generate Report
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-report="unit-daily">Daily Activity</a></li>
+                            <li><a class="dropdown-item" href="#" data-report="unit-weekly">Weekly Activity</a></li>
+                            <li><a class="dropdown-item" href="#" data-report="unit-monthly">Monthly Activity</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-report="unit-custom">Custom Range</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">System Reports</h5>
+                    <p class="card-text">View system statistics and usage reports</p>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            Generate Report
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-report="system-performance">System Performance</a></li>
+                            <li><a class="dropdown-item" href="#" data-report="system-usage">System Usage</a></li>
+                            <li><a class="dropdown-item" href="#" data-report="system-errors">Error Log</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Date Range Modal -->
+    <div class="modal fade" id="customRangeModal" tabindex="-1" aria-labelledby="customRangeModalLabel" aria-hidden="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customRangeModalLabel">Select Date Range</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="customRangeForm">
+                        <div class="mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="generateCustomReport">Generate Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Results Container -->
+    <div id="reportResults" class="mt-4" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="reportTitle">Report Results</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" id="printReport">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" id="downloadReport">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+            <div class="card-body" id="reportContent">
+                <!-- Report content will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Handle report type selection
+    document.querySelectorAll('[data-report]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const reportType = this.dataset.report;
+            
+            if (reportType.includes('custom')) {
+                // Show custom range modal
+                const modal = new bootstrap.Modal(document.getElementById('customRangeModal'));
+                modal.show();
+            } else {
+                generateReport(reportType);
+            }
+        });
+    });
+
+    // Handle custom range report generation
+    document.getElementById('generateCustomReport').addEventListener('click', function() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (startDate && endDate) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('customRangeModal'));
+            modal.hide();
+            generateReport('custom', { startDate, endDate });
+        }
+    });
+
+    // Handle print report
+    document.getElementById('printReport').addEventListener('click', function() {
+        window.print();
+    });
+
+    // Handle download report
+    document.getElementById('downloadReport').addEventListener('click', function() {
+        // Implementation will depend on the report type and format
+        // This is just a placeholder
+        alert('Download functionality will be implemented based on report type');
+    });
+
+    function generateReport(type, params = {}) {
+        // Show loading state
+        document.getElementById('reportResults').style.display = 'block';
+        document.getElementById('reportContent').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        // Set report title
+        let title = 'Report Results';
+        switch(type) {
+            case 'daily':
+                title = 'Daily Incident Summary';
+                break;
+            case 'weekly':
+                title = 'Weekly Incident Summary';
+                break;
+            case 'monthly':
+                title = 'Monthly Incident Summary';
+                break;
+            case 'unit-daily':
+                title = 'Daily Unit Activity';
+                break;
+            case 'unit-weekly':
+                title = 'Weekly Unit Activity';
+                break;
+            case 'unit-monthly':
+                title = 'Monthly Unit Activity';
+                break;
+            case 'system-performance':
+                title = 'System Performance Report';
+                break;
+            case 'system-usage':
+                title = 'System Usage Report';
+                break;
+            case 'system-errors':
+                title = 'System Error Log';
+                break;
+            case 'custom':
+                title = 'Custom Range Report';
+                break;
+        }
+        document.getElementById('reportTitle').textContent = title;
+
+        // Fetch report data
+        fetch(`/api/reports/${type}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(params)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayReport(data.report, type);
+            } else {
+                document.getElementById('reportContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        Error generating report: ${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('reportContent').innerHTML = `
+                <div class="alert alert-danger">
+                    Error generating report: ${error.message}
+                </div>
+            `;
+        });
+    }
+
+    function displayReport(report, type) {
+        // Implementation will vary based on report type
+        // This is just a placeholder that will be replaced with actual implementation
+        document.getElementById('reportContent').innerHTML = `
+            <div class="alert alert-info">
+                Report display implementation for type: ${type}
+            </div>
+            <pre>${JSON.stringify(report, null, 2)}</pre>
+        `;
+    }
+});
+</script>
+{% endblock %}

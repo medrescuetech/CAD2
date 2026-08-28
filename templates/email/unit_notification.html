@@ -1,0 +1,46 @@
+{% extends "email/base.html" %}
+
+{% block title %}Unit {{ unit.name }} - {{ notification_type|capitalize }}{% endblock %}
+
+{% block header %}Unit {{ notification_type|capitalize }}: {{ unit.name }}{% endblock %}
+
+{% block content %}
+<p>Hello {{ user.first_name }},</p>
+
+{% if notification_type == 'assigned' %}
+<p>A unit has been assigned to an incident in the CAD system:</p>
+{% elif notification_type == 'status_change' %}
+<p>A unit's status has been updated in the CAD system:</p>
+{% elif notification_type == 'location_change' %}
+<p>A unit's location has been updated in the CAD system:</p>
+{% endif %}
+
+<div style="margin: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 5px;">
+    <h2>Unit: {{ unit.name }}</h2>
+    <p><strong>Type:</strong> {{ unit.unit_type }}</p>
+    <p><strong>Status:</strong> {{ unit.status }}</p>
+    
+    {% if incident %}
+    <p><strong>Assigned to Incident:</strong> {{ incident.incident_number }}</p>
+    <p><strong>Incident Priority:</strong> <span class="priority-{{ incident.priority|lower }}">{{ incident.get_priority_string() }}</span></p>
+    <p><strong>Incident Location:</strong> {{ incident.location }}</p>
+    {% endif %}
+    
+    {% if old_status and new_status %}
+    <p><strong>Status changed from:</strong> {{ old_status }} <strong>to:</strong> {{ new_status }}</p>
+    {% endif %}
+    
+    <p class="timestamp">{{ timestamp }}</p>
+</div>
+
+<p>You can view the full unit details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ url }}" class="button">View Unit Details</a>
+</p>
+
+<p>Thank you for your attention to this matter.</p>
+
+<p>Regards,<br>
+CAD System</p>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% if location %}
+<div id="locationData" 
+     data-id="{{ location.id }}"
+     data-name="{{ location.name }}"
+     data-latitude="{{ location.latitude }}"
+     data-longitude="{{ location.longitude }}">
+</div>
+{% else %}
+<div id="defaultLocation"
+     data-latitude="{{ default_location.latitude }}"
+     data-longitude="{{ default_location.longitude }}">
+</div>
+{% endif %}

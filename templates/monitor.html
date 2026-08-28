@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Monitor - CAD System{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: 4px;
+}
+.incident-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #dc3545;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.incident-marker i {
+    font-size: 18px;
+    color: #dc3545;
+}
+.unit-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #0d6efd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.unit-marker i {
+    font-size: 18px;
+    color: #0d6efd;
+}
+</style>
+{% endblock %}
+
+{% macro render_badge(text, type) %}
+<span class="badge bg-{{ type }}">{{ text }}</span>
+{% endmacro %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Map View -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Map View</h5>
+                </div>
+                <div class="card-body">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Incidents -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Active Incidents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Number</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Problem</th>
+                                    <th scope="col">Priority</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activeIncidents">
+                                {% for incident in incidents %}
+                                <tr class="incident-row" data-incident-id="{{ incident.id }}">
+                                    <td>{{ incident.number }}</td>
+                                    <td>{{ incident.location }}</td>
+                                    <td>{{ incident.problem }}</td>
+                                    <td>{{ render_badge(incident.priority, 'danger' if incident.priority == 'high' else 'warning' if incident.priority == 'medium' else 'info') }}</td>
+                                    <td>{{ incident.status }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Unit Status -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Unit Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Unit</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Crew</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unitStatus">
+                                {% for unit in units %}
+                                <tr>
+                                    <td>{{ unit.unit_number }}</td>
+                                    <td>{{ unit.unit_type }}</td>
+                                    <td>{{ render_badge(unit.status, 'success' if unit.status == 'AVAILABLE' else 'warning' if unit.status == 'EN_ROUTE' else 'danger') }}</td>
+                                    <td>{{ unit.location }}</td>
+                                    <td>{{ unit.crew }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Status -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="connectionToast" class="toast align-items-center text-white border-0" role="alert" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-plug me-2"></i><span id="connectionStatus">Connecting...</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+// Initialize map
+let map = null;
+let markers = new Map();
+
+function initMap() {
+    // Initialize map
+    map = L.map('map').setView([51.505, -0.09], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Add markers for existing incidents and units
+    updateMapMarkers();
+}
+
+function updateMapMarkers() {
+    // Clear existing markers
+    markers.forEach(marker => map.removeLayer(marker));
+    markers.clear();
+
+    // Add incident markers
+    document.querySelectorAll('#activeIncidents tr').forEach(row => {
+        const incidentId = row.dataset.incidentId;
+        const location = row.querySelector('td:nth-child(2)').textContent;
+        
+        // Get location coordinates from the server
+        fetch(`/api/admin/locations/search?name=${encodeURIComponent(location)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.location) {
+                    const { latitude, longitude } = data.location;
+                    if (latitude && longitude) {
+                        const marker = L.marker([latitude, longitude], {
+                            icon: L.divIcon({
+                                className: 'incident-marker',
+                                html: '<i class="fas fa-exclamation-triangle"></i>'
+                            })
+                        }).addTo(map);
+                        
+                        marker.bindPopup(`
+                            <strong>Incident #${row.querySelector('td:first-child').textContent}</strong><br>
+                            Location: ${location}<br>
+                            Problem: ${row.querySelector('td:nth-child(3)').textContent}
+                        `);
+                        
+                        markers.set(`incident_${incidentId}`, marker);
+                    }
+                }
+            });
+    });
+
+    // Add unit markers
+    document.querySelectorAll('#unitStatus tr').forEach(row => {
+        const unitNumber = row.querySelector('td:first-child').textContent;
+        const location = row.querySelector('td:nth-child(4)').textContent;
+        
+        // Get location coordinates from the server
+        fetch(`/api/admin/locations/search?name=${encodeURIComponent(location)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.location) {
+                    const { latitude, longitude } = data.location;
+                    if (latitude && longitude) {
+                        const marker = L.marker([latitude, longitude], {
+                            icon: L.divIcon({
+                                className: 'unit-marker',
+                                html: '<i class="fas fa-ambulance"></i>'
+                            })
+                        }).addTo(map);
+                        
+                        marker.bindPopup(`
+                            <strong>Unit ${unitNumber}</strong><br>
+                            Type: ${row.querySelector('td:nth-child(2)').textContent}<br>
+                            Status: ${row.querySelector('td:nth-child(3)').textContent}
+                        `);
+                        
+                        markers.set(`unit_${unitNumber}`, marker);
+                    }
+                }
+            });
+    });
+}
+
+function viewIncident(id) {
+    window.location.href = `/incidents/${id}`;
+}
+
+// Add click event listeners to incident rows
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.incident-row').forEach(row => {
+        row.addEventListener('click', function() {
+            const incidentId = this.dataset.incidentId;
+            viewIncident(incidentId);
+        });
+    });
+});
+
+function createTableRow(data, isIncident = true) {
+    const tr = document.createElement('tr');
+    if (isIncident) {
+        tr.className = 'incident-row';
+        tr.dataset.incidentId = data.id;
+        tr.addEventListener('click', () => viewIncident(data.id));
+    }
+
+    const cells = isIncident ? [
+        { text: data.number },
+        { text: data.location },
+        { text: data.problem },
+        { 
+            badge: true, 
+            class: data.priority === 'high' ? 'danger' : data.priority === 'medium' ? 'warning' : 'info',
+            text: data.priority
+        },
+        { text: data.status }
+    ] : [
+        { text: data.unit_number },
+        { text: data.unit_type },
+        { 
+            badge: true, 
+            class: data.status === 'AVAILABLE' ? 'success' : data.status === 'EN_ROUTE' ? 'warning' : 'danger',
+            text: data.status
+        },
+        { text: data.location },
+        { text: data.crew }
+    ];
+
+    cells.forEach(cell => {
+        const td = document.createElement('td');
+        if (cell.badge) {
+            const span = document.createElement('span');
+            span.className = `badge bg-${cell.class}`;
+            span.textContent = cell.text;
+            td.appendChild(span);
+        } else {
+            td.textContent = cell.text;
+        }
+        tr.appendChild(td);
+    });
+
+    return tr;
+}
+
+function updateIncidentTable(incidents) {
+    const tbody = document.getElementById('activeIncidents');
+    tbody.innerHTML = '';
+    incidents.forEach(incident => {
+        tbody.appendChild(createTableRow(incident, true));
+    });
+    updateMapMarkers();
+}
+
+function updateUnitTable(units) {
+    const tbody = document.getElementById('unitStatus');
+    tbody.innerHTML = '';
+    units.forEach(unit => {
+        tbody.appendChild(createTableRow(unit, false));
+    });
+    updateMapMarkers();
+}
+
+// Initialize WebSocket listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    initMap();
+
+    // Listen for incident updates
+    WebSocketManager.on('incident_update', function(data) {
+        updateIncidentTable(data.incidents);
+    });
+
+    // Listen for unit updates
+    WebSocketManager.on('unit_update', function(data) {
+        updateUnitTable(data.units);
+    });
+
+    // Listen for connection status changes
+    WebSocketManager.on('connection_status', function(data) {
+        const toast = document.getElementById('connectionToast');
+        const status = document.getElementById('connectionStatus');
+        status.textContent = data.status === 'connected' ? 'Connected' : 'Disconnected';
+        toast.className = `toast align-items-center text-white bg-${data.status === 'connected' ? 'success' : 'danger'} border-0`;
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    });
+});
+</script>
+{% endblock %} 

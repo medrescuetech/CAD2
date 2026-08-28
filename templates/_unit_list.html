@@ -1,0 +1,6 @@
+{% for unit in units %}
+<div class="unit-item" data-unit-id="{{ unit.id }}" 
+     oncontextmenu="showUnitStatusMenu(event, '{{ unit.id }}'); return false;">
+    {{ unit.name }} - {{ unit.current_status }}
+</div>
+{% endfor %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-3 col-lg-2 d-md-block admin-sidebar">
+            <div class="position-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.index' %}active{% endif %}" 
+                           href="{{ url_for('admin.index') }}">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
+                    
+                    <!-- User Management -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}" 
+                           href="{{ url_for('admin.users') }}">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.roles' %}active{% endif %}" 
+                           href="{{ url_for('admin.roles') }}">
+                            <i class="fas fa-user-tag me-2"></i>Roles
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.permissions' %}active{% endif %}" 
+                           href="{{ url_for('admin.permissions') }}">
+                            <i class="fas fa-lock me-2"></i>Permissions
+                        </a>
+                    </li>
+                    
+                    <!-- Resource Management -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.units' %}active{% endif %}" 
+                           href="{{ url_for('admin.units') }}">
+                            <i class="fas fa-ambulance me-2"></i>Units
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.locations' %}active{% endif %}" 
+                           href="{{ url_for('admin.locations') }}">
+                            <i class="fas fa-map-marker me-2"></i>Locations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.pickup_points' %}active{% endif %}" 
+                           href="{{ url_for('admin.pickup_points') }}">
+                            <i class="fas fa-map-marker-alt me-2"></i>Pickup Points
+                        </a>
+                    </li>
+                    
+                    <!-- System Settings -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.settings' %}active{% endif %}" 
+                           href="{{ url_for('admin.settings') }}">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.maps' %}active{% endif %}" 
+                           href="{{ url_for('admin.maps') }}">
+                            <i class="fas fa-map me-2"></i>Maps
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.api_keys' %}active{% endif %}" 
+                           href="{{ url_for('admin.api_keys') }}">
+                            <i class="fas fa-key me-2"></i>API Keys
+                        </a>
+                    </li>
+                    
+                    <!-- Monitoring -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.system_logs' %}active{% endif %}" 
+                           href="{{ url_for('admin.system_logs') }}">
+                            <i class="fas fa-clipboard-list me-2"></i>System Logs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.reports' %}active{% endif %}" 
+                           href="{{ url_for('admin.reports') }}">
+                            <i class="fas fa-chart-bar me-2"></i>Reports
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 admin-content">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Admin-specific scripts -->
+<script>
+function sortTable(table, column, asc = true) {
+    const dirModifier = asc ? 1 : -1;
+    const tBody = table.tBodies[0];
+    const rows = Array.from(tBody.querySelectorAll('tr'));
+    
+    // Sort each row
+    const sortedRows = rows.sort((a, b) => {
+        const aColText = a.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+        const bColText = b.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+        
+        // Try to parse as numbers first
+        const aValue = parseFloat(aColText);
+        const bValue = parseFloat(bColText);
+        
+        if (!isNaN(aValue) && !isNaN(bValue)) {
+            return (aValue - bValue) * dirModifier;
+        }
+        
+        return aColText.localeCompare(bColText) * dirModifier;
+    });
+    
+    // Remove all existing rows from the table
+    while (tBody.firstChild) {
+        tBody.removeChild(tBody.firstChild);
+    }
+    
+    // Add sorted rows
+    tBody.append(...sortedRows);
+    
+    // Remember how the column is currently sorted
+    table.querySelectorAll('th').forEach(th => th.classList.remove('asc', 'desc'));
+    table.querySelector(`th:nth-child(${column + 1})`).classList.toggle('asc', asc);
+    table.querySelector(`th:nth-child(${column + 1})`).classList.toggle('desc', !asc);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize sortable tables
+    const tables = document.querySelectorAll('.admin-table');
+    tables.forEach(table => {
+        const headers = table.querySelectorAll('th.sortable');
+        headers.forEach((header, index) => {
+            header.addEventListener('click', () => {
+                const isAsc = !header.classList.contains('asc');
+                sortTable(table, index, isAsc);
+            });
+        });
+    });
+
+    // Handle sidebar responsiveness
+    const sidebar = document.querySelector('.admin-sidebar');
+    if (window.innerWidth < 768) {
+        sidebar.classList.remove('show');
+    }
+
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Add confirmation to dangerous actions
+    document.querySelectorAll('[data-confirm]').forEach(element => {
+        element.addEventListener('click', function(e) {
+            if (!confirm(this.dataset.confirm)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% block admin_scripts %}{% endblock %}
+{% endblock %}

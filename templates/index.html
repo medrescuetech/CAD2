@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-available { background-color: #28a745; }
+    .status-busy { background-color: #dc3545; }
+    .status-enroute { background-color: #ffc107; }
+    .status-onscene { background-color: #17a2b8; }
+    .incident-priority-high { border-left: 4px solid #dc3545; }
+    .incident-priority-medium { border-left: 4px solid #ffc107; }
+    .incident-priority-low { border-left: 4px solid #28a745; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Map Section -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Live Map</h5>
+                    <a href="{{ url_for('pages.map_view') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-expand"></i> Full Map
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Units -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Active Units</h5>
+                    <a href="{{ url_for('pages.units') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-ambulance"></i> All Units
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Unit</th>
+                                    <th>Status</th>
+                                    <th>Location</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-units">
+                                {% for unit in active_units %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('pages.unit_detail', unit_id=unit.id) }}">
+                                            {{ unit.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ unit.status_class }}">
+                                            {{ unit.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ unit.location }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Active Incidents -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Active Incidents</h5>
+                    <div>
+                        {% if current_user.can(Permission.CREATE_INCIDENTS) %}
+                        <a href="{{ url_for('pages.incident') }}" class="btn btn-sm btn-success me-2" id="createIncidentButton">
+                            <i class="fas fa-plus"></i> New Incident
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('pages.incidents') }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-list"></i> All Incidents
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Type</th>
+                                    <th>Location</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Units</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-incidents">
+                                {% for incident in active_incidents %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('pages.view_incident', incident_id=incident.id) }}">
+                                            {{ incident.id }}
+                                        </a>
+                                    </td>
+                                    <td>{{ incident.type }}</td>
+                                    <td>{{ incident.location }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ incident.priority_class }}">
+                                            {{ incident.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ incident.status_class }}">
+                                            {{ incident.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% for unit in incident.assigned_units %}
+                                        <span class="badge bg-secondary">{{ unit }}</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-ambulance fa-2x text-primary"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Active Units</h6>
+                                    <h4 id="active-units-count">{{ stats.active_units }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Active Incidents</h6>
+                                    <h4 id="active-incidents-count">{{ stats.active_incidents }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-clock fa-2x text-info"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Avg Response</h6>
+                                    <h4 id="avg-response-time">{{ stats.avg_response_time }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Completed</h6>
+                                    <h4 id="completed-incidents">{{ stats.completed_incidents }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
+
+<script>
+// Initialize map
+let map;
+let markers = {};
+
+function initMap() {
+    map = L.map('map').setView([{{ default_lat }}, {{ default_lng }}], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: ' OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Load initial markers
+    updateMap();
+}
+
+function updateMap() {
+    fetch('/api/map/data')
+        .then(response => response.json())
+        .then(data => {
+            // Clear existing markers
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
+            
+            // Add unit markers
+            data.units.forEach(unit => {
+                const marker = L.marker([unit.lat, unit.lng], {
+                    title: unit.name,
+                    icon: L.divIcon({
+                        className: 'unit-marker',
+                        html: `<i class="fas fa-ambulance text-${unit.status_class}"></i>`,
+                        iconSize: [24, 24]
+                    })
+                }).addTo(map);
+                markers[unit.id] = marker;
+            });
+            
+            // Add incident markers
+            data.incidents.forEach(incident => {
+                const marker = L.marker([incident.lat, incident.lng], {
+                    title: `Incident #${incident.id}`,
+                    icon: L.divIcon({
+                        className: 'incident-marker',
+                        html: `<i class="fas fa-exclamation-triangle text-${incident.priority_class}"></i>`,
+                        iconSize: [24, 24]
+                    })
+                }).addTo(map);
+                markers[incident.id] = marker;
+            });
+        });
+}
+
+// Initialize map on load
+document.addEventListener('DOMContentLoaded', initMap);
+
+// Refresh data periodically
+setInterval(function() {
+    // Update map
+    updateMap();
+    
+    // Update tables and stats
+    fetch('/api/dashboard/data')
+        .then(response => response.json())
+        .then(data => {
+            // Update units table
+            document.getElementById('active-units').innerHTML = data.units.map(unit => `
+                <tr>
+                    <td><a href="/units/${unit.id}">${unit.name}</a></td>
+                    <td><span class="badge bg-${unit.status_class}">${unit.status}</span></td>
+                    <td>${unit.location}</td>
+                </tr>
+            `).join('');
+            
+            // Update incidents table
+            document.getElementById('active-incidents').innerHTML = data.incidents.map(incident => `
+                <tr>
+                    <td><a href="/incidents/${incident.id}">${incident.id}</a></td>
+                    <td>${incident.type}</td>
+                    <td>${incident.location}</td>
+                    <td><span class="badge bg-${incident.priority_class}">${incident.priority}</span></td>
+                    <td><span class="badge bg-${incident.status_class}">${incident.status}</span></td>
+                    <td>${incident.assigned_units.map(unit => 
+                        `<span class="badge bg-secondary">${unit}</span>`
+                    ).join(' ')}</td>
+                </tr>
+            `).join('');
+            
+            // Update stats
+            document.getElementById('active-units-count').textContent = data.stats.active_units;
+            document.getElementById('active-incidents-count').textContent = data.stats.active_incidents;
+            document.getElementById('avg-response-time').textContent = data.stats.avg_response_time;
+            document.getElementById('completed-incidents').textContent = data.stats.completed_incidents;
+        });
+}, 30000);
+</script>
+
+<script>
+function createIncident() {
+    const form = document.getElementById('createIncidentForm');
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => data[key] = value);
+
+    fetch('/api/incidents/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Close modal and show success message
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createIncidentModal'));
+            modal.hide();
+            showAlert('Incident created successfully', 'success');
+            // Refresh the incidents table
+            socket.emit('request_incidents_update');
+        } else {
+            showAlert(data.message || 'Error creating incident', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error creating incident', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').insertAdjacentElement('afterbegin', alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

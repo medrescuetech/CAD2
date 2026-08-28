@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Active Incidents -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>Active Incidents
+                    </h5>
+                    {% if current_user.can(Permission.MANAGE_INCIDENTS) %}
+                    <a href="{{ url_for('pages.new_incident') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>New Incident
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if active_incidents %}
+                    <div class="list-group" id="activeIncidentsList">
+                        {% for incident in active_incidents %}
+                        <a href="{{ url_for('main.view_incident', incident_id=incident.id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ incident.number }}</h6>
+                                <small class="text-muted">{{ incident.created_at|format_datetime }}</small>
+                            </div>
+                            <p class="mb-1">{{ incident.problem }}</p>
+                            <small>{{ incident.location }}</small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center my-3">No active incidents</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Units Status -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-ambulance text-primary me-2"></i>Units Status
+                    </h5>
+                    {% if current_user.can(Permission.MANAGE_UNITS) %}
+                    <button class="btn btn-primary btn-sm" onclick="showUnitManager()">
+                        <i class="fas fa-cog me-1"></i>Manage Units
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if units %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-3">Available Units ({{ available_units|length }})</h6>
+                            <div class="list-group" id="availableUnitsList">
+                                {% for unit in available_units %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ unit.name }}</h6>
+                                        <span class="badge bg-success">Available</span>
+                                    </div>
+                                    <small>{{ unit.location }}</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning mb-3">Assigned Units ({{ assigned_units|length }})</h6>
+                            <div class="list-group" id="assignedUnitsList">
+                                {% for unit in assigned_units %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ unit.name }}</h6>
+                                        <span class="badge bg-warning">Assigned</span>
+                                    </div>
+                                    <small>{{ unit.location }}</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center my-3">No units available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt text-primary me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% if current_user.can(Permission.MANAGE_INCIDENTS) %}
+                        <div class="col-md-3">
+                            <a href="{{ url_for('pages.new_incident') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-plus-circle me-2"></i>New Incident
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if current_user.can(Permission.VIEW_DAILY_LOG) %}
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-info w-100" onclick="showDailyLog()">
+                                <i class="fas fa-book me-2"></i>Daily Log
+                            </button>
+                        </div>
+                        {% endif %}
+                        
+                        {% if current_user.can(Permission.VIEW_REPORTS) %}
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-chart-bar me-2"></i>Reports
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if current_user.is_administrator() %}
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-cog me-2"></i>Admin Panel
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize any dashboard-specific functionality
+    refreshIncidents();
+    refreshUnits();
+});
+
+function showUnitManager() {
+    window.location.href = '/admin/manage_units';
+}
+
+function showDailyLog() {
+    window.location.href = '/daily_log';
+}
+
+function refreshIncidents() {
+    fetch('/api/incidents/active')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('activeIncidentsList');
+            container.innerHTML = data.map(incident => `
+                <a href="/incident/${incident.id}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${incident.number}</h6>
+                        <small class="text-muted">${new Date(incident.created_at).toLocaleString()}</small>
+                    </div>
+                    <p class="mb-1">${incident.problem}</p>
+                    <small>${incident.location}</small>
+                </a>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error refreshing incidents:', error);
+            showAlert('danger', 'Failed to refresh incidents');
+        });
+}
+
+function refreshUnits() {
+    fetch('/api/units')
+        .then(response => response.json())
+        .then(data => {
+            const availableContainer = document.getElementById('availableUnitsList');
+            const assignedContainer = document.getElementById('assignedUnitsList');
+            
+            availableContainer.innerHTML = data.filter(unit => unit.status === 'available').map(unit => `
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${unit.name}</h6>
+                        <span class="badge bg-success">Available</span>
+                    </div>
+                    <small>${unit.location}</small>
+                </div>
+            `).join('');
+            
+            assignedContainer.innerHTML = data.filter(unit => unit.status === 'assigned').map(unit => `
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${unit.name}</h6>
+                        <span class="badge bg-warning">Assigned</span>
+                    </div>
+                    <small>${unit.location}</small>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error refreshing units:', error);
+            showAlert('danger', 'Failed to refresh units');
+        });
+}
+
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '1050';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

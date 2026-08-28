@@ -1,0 +1,377 @@
+/* Map container */
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+}
+
+/* Custom marker styles */
+.custom-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+}
+
+/* Hospital marker */
+.hospital-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    border: 2px solid #6f42c1;
+    width: 35px !important;
+    height: 35px !important;
+    text-align: center;
+}
+
+.hospital-marker i {
+    font-size: 16px;
+    color: #6f42c1;
+}
+
+/* Unit markers */
+.unit-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    border: 2px solid #0d6efd;
+    width: 40px !important;
+    height: 40px !important;
+    text-align: center;
+    position: relative;
+}
+
+.unit-marker i {
+    font-size: 16px;
+    color: #0d6efd;
+}
+
+.unit-number {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #0d6efd;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    white-space: nowrap;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.unit-marker.available {
+    color: #2ecc71;
+}
+
+.unit-marker.assigned {
+    color: #f1c40f;
+}
+
+.unit-marker.at_scene {
+    color: #3498db;
+}
+
+.unit-marker.at_hospital {
+    color: #9b59b6;
+}
+
+.unit-marker.unavailable {
+    color: #e74c3c;
+}
+
+.unit-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.unit-marker i {
+    font-size: 16px;
+    color: #333;
+}
+
+.unit-marker.status-available {
+    border-color: #28a745;
+}
+
+.unit-marker.status-assigned {
+    border-color: #ffc107;
+}
+
+.unit-marker.status-enroute {
+    border-color: #17a2b8;
+}
+
+.unit-marker.status-onscene {
+    border-color: #dc3545;
+}
+
+.unit-marker.status-outofservice {
+    border-color: #6c757d;
+    opacity: 0.7;
+}
+
+.unit-marker.source-incident_assignment {
+    background: #fff;
+    border-width: 3px;
+}
+
+.unit-marker.source-home_location {
+    background: #f8f9fa;
+    border-style: dashed;
+}
+
+.unit-marker.source-default_location {
+    background: #f8f9fa;
+    border-style: dotted;
+    opacity: 0.9;
+}
+
+/* Incident markers */
+.incident-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    border: 2px solid #dc3545;
+    width: 40px !important;
+    height: 40px !important;
+    text-align: center;
+    position: relative;
+}
+
+.incident-marker i {
+    font-size: 16px;
+    color: #dc3545;
+}
+
+.incident-number {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #dc3545;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    white-space: nowrap;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.incident-marker.new {
+    color: #e74c3c;
+}
+
+.incident-marker.assigned {
+    color: #f1c40f;
+}
+
+.incident-marker.en_route {
+    color: #3498db;
+}
+
+.incident-marker.on_scene {
+    color: #2ecc71;
+}
+
+.incident-marker.completed {
+    color: #95a5a6;
+}
+
+.incident-marker.closed {
+    color: #7f8c8d;
+}
+
+/* Pickup point markers */
+.pickup-point-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    border: 2px solid #198754;
+    width: 30px !important;
+    height: 30px !important;
+    text-align: center;
+}
+
+.pickup-point-marker i {
+    font-size: 14px;
+    color: #198754;
+}
+
+/* Popup styles */
+.leaflet-popup-content {
+    padding: 10px;
+}
+
+.incident-popup,
+.unit-popup,
+.pickup-point-popup,
+.hospital-popup {
+    padding: 10px;
+    max-width: 300px;
+}
+
+.incident-popup h3,
+.unit-popup h3,
+.pickup-point-popup h3,
+.hospital-popup h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.incident-popup p,
+.unit-popup p,
+.pickup-point-popup p,
+.hospital-popup p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.unit-popup {
+    padding: 10px;
+    min-width: 200px;
+}
+
+.unit-popup h6 {
+    margin: 0 0 8px 0;
+    font-weight: bold;
+}
+
+.unit-popup .status {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.unit-popup .location-source {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 6px;
+}
+
+.unit-popup .address {
+    font-size: 0.9em;
+    margin-bottom: 6px;
+}
+
+.unit-popup .timestamp {
+    color: #888;
+    font-size: 0.8em;
+    margin-bottom: 0;
+}
+
+.unit-popup .status.available {
+    background-color: #28a745;
+    color: white;
+}
+
+.unit-popup .status.assigned {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.unit-popup .status.enroute {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.unit-popup .status.onscene {
+    background-color: #dc3545;
+    color: white;
+}
+
+.unit-popup .status.outofservice {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Map controls */
+.leaflet-control-zoom {
+    margin: 15px;
+}
+
+.leaflet-control-zoom a {
+    background-color: #fff;
+    border: 2px solid rgba(0,0,0,0.2);
+    color: #333;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: #f4f4f4;
+}
+
+/* Map attribution */
+.leaflet-control-attribution {
+    background-color: rgba(255,255,255,0.8) !important;
+    padding: 5px !important;
+}
+
+/* Status Colors */
+.status-ACTIVE { background-color: #dc3545 !important; }
+.status-PENDING { background-color: #ffc107 !important; }
+.status-CLOSED { background-color: #6c757d !important; }
+.status-DISPATCHED { background-color: #0dcaf0 !important; }
+.status-ENROUTE { background-color: #fd7e14 !important; }
+.status-ON_SCENE { background-color: #198754 !important; }
+.status-RETURNING { background-color: #6610f2 !important; }
+.status-OUT_OF_SERVICE { background-color: #343a40 !important; }
+.status-MEAL_BREAK { background-color: #20c997 !important; }
+.status-AT_MEDICAL_CENTRE { background-color: #0d6efd !important; }
+.status-PATROL { background-color: #6f42c1 !important; }
+
+/* Legend styles */
+.map-legend {
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.map-legend h6 {
+    margin: 0 0 8px 0;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.map-legend .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 0.8em;
+}
+
+.map-legend .legend-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    border-radius: 50%;
+    border: 2px solid #333;
+}
+
+.map-legend .legend-text {
+    color: #333;
+}

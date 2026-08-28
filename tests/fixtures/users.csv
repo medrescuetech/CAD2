@@ -1,0 +1,2 @@
+username,email,first_name,last_name,role,password
+admin,admin@example.com,Admin,User,administrator,admin

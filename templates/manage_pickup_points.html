@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Pickup Points{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Pickup Points</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Add New Pickup Point</h5>
+            <form id="add-pickup-point-form" method="POST" action="{{ url_for('routes.manage_pickup_points') }}" aria-label="Add new pickup point form">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required aria-label="Pickup point name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Type</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="STANDARD">Standard</option>
+                                <option value="OFFSITE">Offsite</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="latitude" class="form-label">Latitude (optional)</label>
+                            <input type="number" step="any" class="form-control" id="latitude" name="latitude" aria-label="Pickup point latitude">
+                        </div>
+                        <div class="mb-3">
+                            <label for="longitude" class="form-label">Longitude (optional)</label>
+                            <input type="number" step="any" class="form-control" id="longitude" name="longitude" aria-label="Pickup point longitude">
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" aria-label="Add pickup point">Add Pickup Point</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Existing Pickup Points</h5>
+            <div class="table-responsive">
+                <table class="table" aria-label="Pickup points list">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for point in pickup_points %}
+                        <tr>
+                            <td>
+                                <form method="POST" action="{{ url_for('routes.update_pickup_point', point_id=point.id) }}" class="edit-form-{{ point.id }}" style="display: none;" aria-label="Edit pickup point {{ point.name }}">
+                                    <input type="text" class="form-control" name="name" value="{{ point.name }}" required>
+                                </form>
+                                <span class="point-name-{{ point.id }}">{{ point.name }}</span>
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('routes.update_pickup_point', point_id=point.id) }}" class="edit-form-{{ point.id }}" style="display: none;">
+                                    <select class="form-select" name="type">
+                                        <option value="STANDARD" {% if point.type == 'STANDARD' %}selected{% endif %}>Standard</option>
+                                        <option value="OFFSITE" {% if point.type == 'OFFSITE' %}selected{% endif %}>Offsite</option>
+                                        <option value="OTHER" {% if point.type == 'OTHER' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </form>
+                                <span class="point-type-{{ point.id }}">{{ point.type }}</span>
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('routes.update_pickup_point', point_id=point.id) }}" class="edit-form-{{ point.id }}" style="display: none;">
+                                    <div class="input-group">
+                                        <input type="number" step="any" class="form-control" name="latitude" value="{{ point.location.latitude if point.location else '' }}" placeholder="Latitude">
+                                        <input type="number" step="any" class="form-control" name="longitude" value="{{ point.location.longitude if point.location else '' }}" placeholder="Longitude">
+                                    </div>
+                                </form>
+                                <span class="point-location-{{ point.id }}">
+                                    {% if point.location and point.location.latitude and point.location.longitude %}
+                                    {{ point.location.latitude }}, {{ point.location.longitude }}
+                                    {% else %}
+                                    <span class="text-muted">No location set</span>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button onclick="toggleEdit({{ point.id }})" class="btn btn-sm btn-primary edit-btn" data-id="{{ point.id }}" aria-label="Edit {{ point.name }}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button onclick="submitEdit({{ point.id }})" class="btn btn-sm btn-success save-btn" style="display: none;" data-id="{{ point.id }}" aria-label="Save changes to {{ point.name }}">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                    <button onclick="cancelEdit({{ point.id }})" class="btn btn-sm btn-secondary cancel-btn" style="display: none;" data-id="{{ point.id }}" aria-label="Cancel editing {{ point.name }}">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </button>
+                                    <form method="POST" action="{{ url_for('routes.delete_pickup_point', point_id=point.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this pickup point?');">
+                                        <button type="submit" class="btn btn-sm btn-danger" aria-label="Delete {{ point.name }}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleEdit(id) {
+    document.querySelectorAll('.edit-form-' + id).forEach(form => form.style.display = 'block');
+    document.querySelector('.point-name-' + id).style.display = 'none';
+    document.querySelector('.point-type-' + id).style.display = 'none';
+    document.querySelector('.point-location-' + id).style.display = 'none';
+    document.querySelector(`button.edit-btn[data-id="${id}"]`).style.display = 'none';
+    document.querySelector(`button.save-btn[data-id="${id}"]`).style.display = 'inline';
+    document.querySelector(`button.cancel-btn[data-id="${id}"]`).style.display = 'inline';
+}
+
+function submitEdit(id) {
+    document.querySelectorAll('.edit-form-' + id)[0].submit();
+}
+
+function cancelEdit(id) {
+    document.querySelectorAll('.edit-form-' + id).forEach(form => form.style.display = 'none');
+    document.querySelector('.point-name-' + id).style.display = 'inline';
+    document.querySelector('.point-type-' + id).style.display = 'inline';
+    document.querySelector('.point-location-' + id).style.display = 'inline';
+    document.querySelector(`button.edit-btn[data-id="${id}"]`).style.display = 'inline';
+    document.querySelector(`button.save-btn[data-id="${id}"]`).style.display = 'none';
+    document.querySelector(`button.cancel-btn[data-id="${id}"]`).style.display = 'none';
+}
+</script>
+{% endblock %}

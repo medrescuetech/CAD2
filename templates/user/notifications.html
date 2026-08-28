@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Center{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .notification-list {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .notification-card {
+        margin-bottom: 10px;
+        border-left: 4px solid #007bff;
+        transition: background-color 0.2s;
+    }
+    
+    .notification-card:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .notification-card.unread {
+        background-color: #f0f7ff;
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .notification-card.incident {
+        border-left-color: #dc3545;
+    }
+    
+    .notification-card.unit {
+        border-left-color: #28a745;
+    }
+    
+    .notification-card.system {
+        border-left-color: #6c757d;
+    }
+    
+    .notification-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .notification-title {
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+    
+    .notification-message {
+        margin-bottom: 0;
+        color: #495057;
+    }
+    
+    .notification-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+    }
+    
+    .notification-empty {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    
+    .filters {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Notification Center</h2>
+            <p class="lead">View and manage your notifications</p>
+            
+            <div class="filters">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group" aria-label="Filter">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-danger" data-filter="incident">Incidents</button>
+                            <button type="button" class="btn btn-outline-success" data-filter="unit">Units</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="system">System</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button id="mark-all-read" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-check-double"></i> Mark All as Read
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notification-list" id="notification-container">
+                <!-- Notifications will be loaded here -->
+                <div class="notification-empty">
+                    <i class="fas fa-bell fa-3x mb-3"></i>
+                    <h4>No notifications</h4>
+                    <p>You'll see your notifications here when they arrive.</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-3" id="load-more-container" style="display: none;">
+                <button id="load-more" class="btn btn-outline-primary">
+                    <i class="fas fa-chevron-down"></i> Load More
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification template -->
+<template id="notification-template">
+    <div class="card notification-card" data-id="" data-type="">
+        <div class="card-body">
+            <div class="notification-time"></div>
+            <h5 class="notification-title"></h5>
+            <p class="notification-message"></p>
+            <div class="notification-actions">
+                <button class="btn btn-sm btn-link text-primary mark-read-btn">
+                    <i class="fas fa-check"></i> Mark as Read
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        let currentPage = 1;
+        let hasMorePages = false;
+        let currentFilter = 'all';
+        
+        // Load initial notifications
+        loadNotifications(1, currentFilter);
+        
+        // Filter buttons
+        $('.btn-group button').click(function() {
+            $('.btn-group button').removeClass('active');
+            $(this).addClass('active');
+            
+            currentFilter = $(this).data('filter');
+            currentPage = 1;
+            loadNotifications(currentPage, currentFilter);
+        });
+        
+        // Mark all as read
+        $('#mark-all-read').click(function() {
+            markAllAsRead();
+        });
+        
+        // Load more button
+        $('#load-more').click(function() {
+            currentPage++;
+            loadNotifications(currentPage, currentFilter, true);
+        });
+        
+        // Set up WebSocket for real-time notifications
+        if (typeof socket !== 'undefined') {
+            socket.on('notification', function(data) {
+                addNotificationToTop(data);
+                updateNotificationCount();
+            });
+        }
+        
+        // Initial notification count update
+        updateNotificationCount();
+        
+        // Document event handler for mark as read buttons (for dynamically created elements)
+        $(document).on('click', '.mark-read-btn', function() {
+            const notificationId = $(this).closest('.notification-card').data('id');
+            markAsRead(notificationId);
+        });
+    });
+    
+    function loadNotifications(page, filter, append = false) {
+        let url = `/api/notifications?page=${page}&per_page=10`;
+        
+        if (filter && filter !== 'all') {
+            url += `&type=${filter}`;
+        }
+        
+        $.ajax({
+            url: url,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    if (!append) {
+                        // Clear existing notifications if not appending
+                        $('#notification-container').empty();
+                    }
+                    
+                    if (response.notifications.length === 0 && !append) {
+                        // Show empty state
+                        $('#notification-container').html(`
+                            <div class="notification-empty">
+                                <i class="fas fa-bell fa-3x mb-3"></i>
+                                <h4>No notifications</h4>
+                                <p>You'll see your notifications here when they arrive.</p>
+                            </div>
+                        `);
+                        $('#load-more-container').hide();
+                    } else {
+                        // Add notifications
+                        response.notifications.forEach(function(notification) {
+                            addNotification(notification, append);
+                        });
+                        
+                        // Show/hide load more button
+                        hasMorePages = response.has_more;
+                        $('#load-more-container').toggle(hasMorePages);
+                    }
+                }
+            },
+            error: function() {
+                showAlert('Error loading notifications', 'danger');
+            }
+        });
+    }
+    
+    function addNotification(notification, append = false) {
+        // Clone template
+        const template = document.querySelector('#notification-template');
+        const notificationElement = document.importNode(template.content, true).querySelector('.notification-card');
+        
+        // Set data attributes
+        notificationElement.dataset.id = notification.id;
+        notificationElement.dataset.type = notification.type;
+        
+        // Add appropriate classes
+        if (!notification.read) {
+            notificationElement.classList.add('unread');
+        }
+        notificationElement.classList.add(getTypeClass(notification.type));
+        
+        // Fill in content
+        notificationElement.querySelector('.notification-time').textContent = formatDate(notification.created_at);
+        notificationElement.querySelector('.notification-title').textContent = notification.title;
+        notificationElement.querySelector('.notification-message').textContent = notification.message;
+        
+        // Hide mark as read button if already read
+        if (notification.read) {
+            notificationElement.querySelector('.mark-read-btn').style.display = 'none';
+        }
+        
+        // Add to container
+        const container = document.getElementById('notification-container');
+        
+        if (append) {
+            container.appendChild(notificationElement);
+        } else {
+            container.insertBefore(notificationElement, container.firstChild);
+        }
+        
+        // Show container and hide empty message if needed
+        const emptyMessage = container.querySelector('.notification-empty');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+    }
+    
+    function addNotificationToTop(notification) {
+        // Clone template
+        const template = document.querySelector('#notification-template');
+        const notificationElement = document.importNode(template.content, true).querySelector('.notification-card');
+        
+        // Set data attributes
+        notificationElement.dataset.id = notification.id;
+        notificationElement.dataset.type = notification.type;
+        
+        // Add appropriate classes
+        notificationElement.classList.add('unread');
+        notificationElement.classList.add(getTypeClass(notification.type));
+        
+        // Add highlight animation
+        notificationElement.classList.add('bg-light');
+        
+        // Fill in content
+        notificationElement.querySelector('.notification-time').textContent = 'Just now';
+        notificationElement.querySelector('.notification-title').textContent = notification.title;
+        notificationElement.querySelector('.notification-message').textContent = notification.message;
+        
+        // Add to container at the top
+        const container = document.getElementById('notification-container');
+        
+        // Remove empty message if present
+        const emptyMessage = container.querySelector('.notification-empty');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+        
+        container.insertBefore(notificationElement, container.firstChild);
+        
+        // Highlight effect
+        setTimeout(function() {
+            notificationElement.classList.remove('bg-light');
+        }, 3000);
+    }
+    
+    function getTypeClass(type) {
+        switch(type) {
+            case 'INCIDENT':
+                return 'incident';
+            case 'UNIT':
+                return 'unit';
+            case 'SYSTEM':
+                return 'system';
+            default:
+                return '';
+        }
+    }
+    
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        // Less than a minute
+        if (diff < 60000) {
+            return 'Just now';
+        }
+        
+        // Less than an hour
+        if (diff < 3600000) {
+            const minutes = Math.floor(diff / 60000);
+            return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+        }
+        
+        // Less than a day
+        if (diff < 86400000) {
+            const hours = Math.floor(diff / 3600000);
+            return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+        }
+        
+        // Less than a week
+        if (diff < 604800000) {
+            const days = Math.floor(diff / 86400000);
+            return `${days} day${days !== 1 ? 's' : ''} ago`;
+        }
+        
+        // Format as date
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    
+    function markAsRead(notificationId) {
+        $.ajax({
+            url: `/api/notifications/${notificationId}/read`,
+            method: 'PUT',
+            success: function(response) {
+                if (response.success) {
+                    // Update UI
+                    const notification = $(`.notification-card[data-id="${notificationId}"]`);
+                    notification.removeClass('unread');
+                    notification.find('.mark-read-btn').hide();
+                    
+                    // Update notification count
+                    updateNotificationCount();
+                }
+            },
+            error: function() {
+                showAlert('Error marking notification as read', 'danger');
+            }
+        });
+    }
+    
+    function markAllAsRead() {
+        $.ajax({
+            url: '/api/notifications/read-all',
+            method: 'PUT',
+            success: function(response) {
+                if (response.success) {
+                    // Update UI
+                    $('.notification-card').removeClass('unread');
+                    $('.mark-read-btn').hide();
+                    
+                    // Update notification count
+                    updateNotificationCount();
+                    
+                    showAlert('All notifications marked as read', 'success');
+                }
+            },
+            error: function() {
+                showAlert('Error marking notifications as read', 'danger');
+            }
+        });
+    }
+    
+    function updateNotificationCount() {
+        $.ajax({
+            url: '/api/notifications/unread-count',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const count = response.count;
+                    
+                    // Update notification badge in navbar (if implemented)
+                    $('.notification-badge').text(count > 0 ? count : '');
+                    $('.notification-badge').toggle(count > 0);
+                }
+            }
+        });
+    }
+    
+    function showAlert(message, type) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        $('#alert-container').append(alertHtml);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    }
+</script>
+{% endblock %}

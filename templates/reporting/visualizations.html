@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Data Visualizations</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Incidents by Type</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="incidentsByTypeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Incidents by Priority</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="incidentsByPriorityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Incidents by Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="incidentsByStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">Incident Activity (30 days)</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="incidentActivityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to fetch data and create charts
+function initCharts() {
+    // Incidents by Type
+    fetch('/reporting/analytics/incidents-by-type-viz')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('incidentsByTypeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                            '#6f42c1', '#fd7e14', '#20c9a6', '#5a5c69', '#858796'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        });
+    
+    // Incidents by Priority
+    fetch('/reporting/analytics/incidents-by-priority-viz')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('incidentsByPriorityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Incidents',
+                        data: data.values,
+                        backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b', '#4e73df']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    
+    // Incidents by Status
+    fetch('/reporting/analytics/incidents-by-status-viz')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('incidentsByStatusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        });
+    
+    // Incident Activity
+    fetch('/reporting/analytics/incidents-activity')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('incidentActivityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Incidents',
+                        data: data.values,
+                        borderColor: '#4e73df',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+}
+
+// Initialize charts when page loads
+document.addEventListener('DOMContentLoaded', initCharts);
+</script>
+{% endblock %}

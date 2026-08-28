@@ -1,0 +1,209 @@
+# CAD System Backend Requirements
+
+This document outlines the backend components required to support all features identified in the CAD system templates.
+
+## Core Components
+
+### 1. Authentication System
+- User registration and login functionality
+- Password reset capability
+- Session management
+- Remember Me functionality
+- User profile management
+- Access control middleware for route protection
+
+### 2. Role-Based Access Control (RBAC)
+- Permission management system
+- Role definitions and assignment
+- Permission checking middleware
+- Dynamic UI rendering based on permissions
+- Admin interface for managing roles and permissions
+
+### 3. Database Models
+- User model (username, password, email, role, status)
+- Role model (name, permissions, description)
+- Incident model (number, type, location, status, priority, description, etc.)
+- Unit model (name, type, status, location, assigned incident)
+- Location model (name, address, latitude, longitude)
+- Log model (timestamp, type, message, user, related entity)
+- System settings model (configuration values)
+- AMPDS codes model (for incident classification)
+- Pickup points model (name, location, description)
+- Map configuration model (center coordinates, zoom, api keys)
+- Alarm model (name, time, days, recurring, user)
+
+### 4. API Endpoints
+
+#### Authentication Endpoints
+- POST /api/auth/login - User login
+- POST /api/auth/logout - User logout
+- POST /api/auth/register - New user registration
+- POST /api/auth/reset-password - Password reset
+- GET /api/auth/profile - Get user profile
+- PUT /api/auth/profile - Update user profile
+
+#### Incident Management Endpoints
+- GET /api/incidents - Get all incidents
+- GET /api/incidents/active - Get active incidents 
+- GET /api/incidents/:id - Get specific incident
+- POST /api/incidents - Create new incident
+- PUT /api/incidents/:id - Update incident
+- DELETE /api/incidents/:id - Delete incident
+- PUT /api/incidents/:id/status - Update incident status
+- GET /api/incidents/:id/logs - Get incident logs
+- POST /api/incidents/:id/logs - Add log entry to incident
+
+#### Unit Management Endpoints
+- GET /api/units - Get all units
+- GET /api/units/:id - Get specific unit
+- POST /api/units - Create new unit
+- PUT /api/units/:id - Update unit
+- DELETE /api/units/:id - Delete unit
+- PUT /api/units/:id/status - Update unit status
+- PUT /api/units/:id/location - Update unit location
+- POST /api/units/:id/assign - Assign unit to incident
+- POST /api/units/:id/clear - Clear unit from incident
+
+#### Admin Management Endpoints
+- GET /api/admin/users - Get all users
+- POST /api/admin/users - Create user
+- PUT /api/admin/users/:id - Update user
+- DELETE /api/admin/users/:id - Delete user
+- GET /api/admin/roles - Get all roles
+- POST /api/admin/roles - Create role
+- PUT /api/admin/roles/:id - Update role
+- GET /api/admin/settings - Get system settings
+- PUT /api/admin/settings - Update system settings
+- GET /api/admin/logs - Get system logs
+- GET /api/users/:id/permissions - Get user permissions
+- PUT /api/users/:id/permissions - Update user permissions
+
+#### Location Management Endpoints
+- GET /api/locations - Get all locations
+- GET /api/locations/:id - Get specific location
+- POST /api/locations - Create new location
+- PUT /api/locations/:id - Update location
+- DELETE /api/locations/:id - Delete location
+- GET /api/pickup-points - Get all pickup points
+- POST /api/pickup-points - Create pickup point
+- PUT /api/pickup-points/:id - Update pickup point
+- DELETE /api/pickup-points/:id - Delete pickup point
+
+#### Reporting Endpoints
+- GET /api/reports/incidents - Get incident reports
+- GET /api/reports/units - Get unit reports
+- GET /api/reports/system - Get system reports
+- GET /api/reports/dashboard - Get dashboard metrics
+
+#### Miscellaneous Endpoints
+- GET /api/ampds - Get AMPDS codes
+- POST /api/alarms - Create alarm
+- GET /api/alarms - Get user alarms
+- PUT /api/alarms/:id - Update alarm
+- DELETE /api/alarms/:id - Delete alarm
+- GET /api/daily-log - Get daily log entries
+- POST /api/daily-log - Create daily log entry
+
+### 5. WebSocket Service
+- Real-time incident updates
+- Unit status and location updates
+- System-wide notifications
+- User-specific notifications
+- Alarm notifications
+- Chat/messaging functionality
+- Real-time map updates
+
+### 6. Geospatial Services
+- Map rendering capabilities
+- Geocoding (address to coordinates)
+- Reverse geocoding (coordinates to address)
+- Unit location tracking
+- Incident location mapping
+- Distance calculation
+- Routing suggestions
+- Map API integration
+
+### 7. Notification System
+- In-app notifications
+- Email notifications
+- Audio alerts (alarms)
+- Browser notifications
+- Notification preferences
+
+### 8. Report Generation
+- Incident reports (PDF generation)
+- System activity reports
+- Unit activity reports
+- Statistical analysis
+- Data visualization components
+- Export functionality (CSV, PDF)
+
+### 9. External Integrations
+- Map service APIs (for geocoding and maps)
+- Email service for notifications
+- PDF generation service
+- Data import/export capabilities
+- Weather services
+- External emergency services systems
+
+### 10. System Administration
+- Configuration management
+- System settings
+- Log management
+- Backup and restore functionality
+- User management
+- Performance monitoring
+
+### 11. Data Storage and Persistence
+- Database connection and management
+- Data migration capability
+- Backup and restore procedures
+- Data retention policies
+- Query optimization
+
+### 12. Security Components
+- HTTPS implementation
+- CSRF protection
+- XSS prevention
+- Input validation
+- Rate limiting
+- API key management
+- Data encryption
+
+### 13. Error Handling
+- Global error handling
+- Custom error pages
+- Error logging
+- Debugging tools
+- User-friendly error messages
+
+### 14. Task Scheduling
+- Scheduled data cleanup
+- Report generation
+- Notification dispatch
+- System maintenance tasks
+- Alarm trigger system
+
+## Implementation Details
+
+### Server Framework
+- Web framework (likely Flask based on template syntax)
+- ORM for database interactions
+- WebSocket implementation (Socket.IO)
+- Response formatting middleware
+- Request validation middleware
+
+### Development Considerations
+- Environment configuration (development, testing, production)
+- Dependency management
+- Testing framework
+- Documentation
+- Logging system
+- CI/CD integration
+
+### Deployment Requirements
+- Server requirements
+- Database requirements
+- Environment variables
+- Service dependencies
+- Monitoring tools

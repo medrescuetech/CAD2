@@ -1,0 +1,150 @@
+{% extends "admin/base_admin.html" %}
+
+{% block admin_content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4">Admin Dashboard</h2>
+    
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <p class="card-text h3" id="total-users">{{ stats.total_users }}</p>
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active Units</h5>
+                    <p class="card-text h3" id="active-units">{{ stats.active_units }}/{{ stats.total_units }}</p>
+                    <i class="fas fa-ambulance"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Open Incidents</h5>
+                    <p class="card-text h3" id="open-incidents">{{ stats.open_incidents }}</p>
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">System Health</h5>
+                    <p class="card-text h3" id="system-health">{{ stats.system_health }}</p>
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity Row -->
+    <div class="row">
+        <!-- Recent Incidents -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Incidents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Case Number</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for incident in recent_incidents %}
+                                <tr>
+                                    <td>{{ incident.incident_number }}</td>
+                                    <td>{{ incident.incident_type }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if incident.status == 'closed' else 'warning' }}">
+                                            {{ incident.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ incident.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Users -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Users</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in recent_users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.role.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if user.active else 'danger' }}">
+                                            {{ 'Active' if user.active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Initialize WebSocket connection for stats
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = window.socket;
+
+    // Request initial stats
+    socket.emit('request_admin_stats');
+
+    // Listen for stats updates
+    socket.on('admin_stats_update', function(data) {
+        document.getElementById('total-users').textContent = data.total_users;
+        document.getElementById('active-units').textContent = `${data.active_units}/${data.total_units}`;
+        document.getElementById('open-incidents').textContent = data.open_incidents;
+        document.getElementById('system-health').textContent = data.system_health;
+    });
+
+    // Request stats update every 30 seconds
+    setInterval(function() {
+        socket.emit('request_admin_stats');
+    }, 30000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Email Service{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Test Email Service</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Send Test Email</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="test-email-form">
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">Recipient Email</label>
+                                            <input type="email" class="form-control" id="email" name="email" 
+                                                placeholder="Leave blank to use your email" value="{{ current_user.email }}">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Send Test Email</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Test Incident Notification</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="test-incident-form">
+                                        <div class="mb-3">
+                                            <label for="incident_id" class="form-label">Incident ID</label>
+                                            <input type="number" class="form-control" id="incident_id" name="incident_id" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="incident_notification_type" class="form-label">Notification Type</label>
+                                            <select class="form-select" id="incident_notification_type" name="notification_type" required>
+                                                <option value="created">Created</option>
+                                                <option value="updated">Updated</option>
+                                                <option value="closed">Closed</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="incident_recipient_email" class="form-label">Recipient Email (Optional)</label>
+                                            <input type="email" class="form-control" id="incident_recipient_email" name="recipient_email"
+                                                placeholder="Leave blank to use your email">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Test Incident Notification</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Test Unit Notification</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="test-unit-form">
+                                        <div class="mb-3">
+                                            <label for="unit_id" class="form-label">Unit ID</label>
+                                            <input type="number" class="form-control" id="unit_id" name="unit_id" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="unit_notification_type" class="form-label">Notification Type</label>
+                                            <select class="form-select" id="unit_notification_type" name="notification_type" required>
+                                                <option value="assigned">Assigned</option>
+                                                <option value="status_change">Status Change</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3 unit-assigned-fields">
+                                            <label for="incident_id_for_unit" class="form-label">Incident ID (for assignment)</label>
+                                            <input type="number" class="form-control" id="incident_id_for_unit" name="incident_id">
+                                        </div>
+                                        <div class="mb-3 unit-status-fields d-none">
+                                            <label for="old_status" class="form-label">Old Status</label>
+                                            <input type="text" class="form-control" id="old_status" name="old_status">
+                                        </div>
+                                        <div class="mb-3 unit-status-fields d-none">
+                                            <label for="new_status" class="form-label">New Status</label>
+                                            <input type="text" class="form-control" id="new_status" name="new_status">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="unit_recipient_email" class="form-label">Recipient Email (Optional)</label>
+                                            <input type="email" class="form-control" id="unit_recipient_email" name="recipient_email"
+                                                placeholder="Leave blank to use your email">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Test Unit Notification</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Test Complete Notification Flow</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="test-notification-flow-form">
+                                        <div class="mb-3">
+                                            <label for="notification_type" class="form-label">Notification Type</label>
+                                            <select class="form-select" id="notification_type" name="type" required>
+                                                <option value="incident_created">Incident Created</option>
+                                                <option value="incident_updated">Incident Updated</option>
+                                                <option value="incident_closed">Incident Closed</option>
+                                                <option value="unit_assigned">Unit Assigned</option>
+                                                <option value="unit_status_changed">Unit Status Changed</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3 incident-fields">
+                                            <label for="flow_incident_id" class="form-label">Incident ID</label>
+                                            <input type="number" class="form-control" id="flow_incident_id" name="incident_id">
+                                        </div>
+                                        <div class="mb-3 unit-fields d-none">
+                                            <label for="flow_unit_id" class="form-label">Unit ID</label>
+                                            <input type="number" class="form-control" id="flow_unit_id" name="unit_id">
+                                        </div>
+                                        <div class="mb-3 assignment-fields d-none">
+                                            <label for="flow_assigned_incident_id" class="form-label">Assigned Incident ID</label>
+                                            <input type="number" class="form-control" id="flow_assigned_incident_id" name="assigned_incident_id">
+                                        </div>
+                                        <div class="mb-3 status-fields d-none">
+                                            <label for="flow_old_status" class="form-label">Old Status</label>
+                                            <input type="text" class="form-control" id="flow_old_status" name="old_status">
+                                        </div>
+                                        <div class="mb-3 status-fields d-none">
+                                            <label for="flow_new_status" class="form-label">New Status</label>
+                                            <input type="text" class="form-control" id="flow_new_status" name="new_status">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Test Notification Flow</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Result</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="result-container" class="alert d-none">
+                                        <span id="result-message"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Toggle display of unit fields based on notification type selection
+        $('#unit_notification_type').change(function() {
+            const type = $(this).val();
+            if (type === 'assigned') {
+                $('.unit-assigned-fields').removeClass('d-none');
+                $('.unit-status-fields').addClass('d-none');
+            } else if (type === 'status_change') {
+                $('.unit-assigned-fields').addClass('d-none');
+                $('.unit-status-fields').removeClass('d-none');
+            }
+        });
+        
+        // Toggle display of fields for notification flow test
+        $('#notification_type').change(function() {
+            const type = $(this).val();
+            
+            // Hide all conditional fields
+            $('.incident-fields, .unit-fields, .assignment-fields, .status-fields').addClass('d-none');
+            
+            if (type.startsWith('incident_')) {
+                $('.incident-fields').removeClass('d-none');
+            } else if (type.startsWith('unit_')) {
+                $('.unit-fields').removeClass('d-none');
+                
+                if (type === 'unit_assigned') {
+                    $('.assignment-fields').removeClass('d-none');
+                } else if (type === 'unit_status_changed') {
+                    $('.status-fields').removeClass('d-none');
+                }
+            }
+        });
+        
+        // Handle test email form submission
+        $('#test-email-form').submit(function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: '/test-email',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    showResult(response.success, response.message);
+                },
+                error: function(xhr) {
+                    let errorMsg = 'An error occurred';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    showResult(false, errorMsg);
+                }
+            });
+        });
+        
+        // Handle test incident notification form submission
+        $('#test-incident-form').submit(function(e) {
+            e.preventDefault();
+            
+            const formData = {};
+            $(this).serializeArray().forEach(function(item) {
+                formData[item.name] = item.value;
+            });
+            
+            $.ajax({
+                url: '/test-incident-notification',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    showResult(response.success, response.message);
+                },
+                error: function(xhr) {
+                    let errorMsg = 'An error occurred';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    showResult(false, errorMsg);
+                }
+            });
+        });
+        
+        // Handle test unit notification form submission
+        $('#test-unit-form').submit(function(e) {
+            e.preventDefault();
+            
+            const formData = {};
+            $(this).serializeArray().forEach(function(item) {
+                formData[item.name] = item.value;
+            });
+            
+            $.ajax({
+                url: '/test-unit-notification',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    showResult(response.success, response.message);
+                },
+                error: function(xhr) {
+                    let errorMsg = 'An error occurred';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    showResult(false, errorMsg);
+                }
+            });
+        });
+        
+        // Handle test notification flow form submission
+        $('#test-notification-flow-form').submit(function(e) {
+            e.preventDefault();
+            
+            const formData = {};
+            $(this).serializeArray().forEach(function(item) {
+                formData[item.name] = item.value;
+            });
+            
+            $.ajax({
+                url: '/test-notification-flow',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    showResult(response.success, response.message);
+                },
+                error: function(xhr) {
+                    let errorMsg = 'An error occurred';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    showResult(false, errorMsg);
+                }
+            });
+        });
+        
+        // Helper function to show result
+        function showResult(success, message) {
+            const resultContainer = $('#result-container');
+            const resultMessage = $('#result-message');
+            
+            resultContainer.removeClass('d-none alert-success alert-danger');
+            resultContainer.addClass(success ? 'alert-success' : 'alert-danger');
+            resultMessage.text(message);
+        }
+    });
+</script>
+{% endblock %}

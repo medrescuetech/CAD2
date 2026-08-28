@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Preferences{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .notification-section {
+        margin-bottom: 2rem;
+        border: 1px solid #ddd;
+        padding: 1.5rem;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    
+    .notification-section h3 {
+        margin-top: 0;
+        color: #333;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .notification-toggle {
+        font-weight: bold;
+        font-size: 1.1rem;
+        color: #444;
+    }
+    
+    .notification-type {
+        margin-left: 1.5rem;
+    }
+    
+    .save-btn {
+        margin-top: 1rem;
+    }
+    
+    .notification-desc {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .custom-switch .custom-control-label::before {
+        height: 1.5rem;
+        width: 2.75rem;
+        border-radius: 1rem;
+    }
+    
+    .custom-switch .custom-control-label::after {
+        height: calc(1.5rem - 4px);
+        width: calc(1.5rem - 4px);
+        border-radius: 1rem;
+    }
+    
+    .custom-switch .custom-control-input:checked ~ .custom-control-label::after {
+        transform: translateX(1.25rem);
+    }
+    
+    .main-toggle {
+        background-color: #f5f5f5;
+        padding: 0.5rem;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Notification Preferences</h2>
+            <p class="lead">Customize how you receive notifications in the CAD system</p>
+            
+            <div id="notification-form">
+                <!-- In-App Notifications Section -->
+                <div class="notification-section">
+                    <h3>In-App Notifications</h3>
+                    <p class="notification-desc">These notifications appear within the application interface.</p>
+                    
+                    <div class="form-group main-toggle">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="app_notifications_enabled" name="app_notifications_enabled">
+                            <label class="custom-control-label notification-toggle" for="app_notifications_enabled">Enable All In-App Notifications</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input app-notification" id="app_incident_created" name="app_incident_created">
+                            <label class="custom-control-label" for="app_incident_created">New Incident Created</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input app-notification" id="app_incident_updated" name="app_incident_updated">
+                            <label class="custom-control-label" for="app_incident_updated">Incident Updated</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input app-notification" id="app_incident_closed" name="app_incident_closed">
+                            <label class="custom-control-label" for="app_incident_closed">Incident Closed</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input app-notification" id="app_unit_assigned" name="app_unit_assigned">
+                            <label class="custom-control-label" for="app_unit_assigned">Unit Assignment</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input app-notification" id="app_unit_status_changed" name="app_unit_status_changed">
+                            <label class="custom-control-label" for="app_unit_status_changed">Unit Status Changed</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input app-notification" id="app_system_notifications" name="app_system_notifications">
+                            <label class="custom-control-label" for="app_system_notifications">System Notifications</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Email Notifications Section -->
+                <div class="notification-section">
+                    <h3>Email Notifications</h3>
+                    <p class="notification-desc">Receive email notifications for important events.</p>
+                    
+                    <div class="form-group main-toggle">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="email_notifications_enabled" name="email_notifications_enabled">
+                            <label class="custom-control-label notification-toggle" for="email_notifications_enabled">Enable All Email Notifications</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input email-notification" id="email_incident_created" name="email_incident_created">
+                            <label class="custom-control-label" for="email_incident_created">New Incident Created</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input email-notification" id="email_incident_updated" name="email_incident_updated">
+                            <label class="custom-control-label" for="email_incident_updated">Incident Updated</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input email-notification" id="email_incident_closed" name="email_incident_closed">
+                            <label class="custom-control-label" for="email_incident_closed">Incident Closed</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input email-notification" id="email_unit_assigned" name="email_unit_assigned">
+                            <label class="custom-control-label" for="email_unit_assigned">Unit Assignment</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input email-notification" id="email_unit_status_changed" name="email_unit_status_changed">
+                            <label class="custom-control-label" for="email_unit_status_changed">Unit Status Changed</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input email-notification" id="email_system_notifications" name="email_system_notifications">
+                            <label class="custom-control-label" for="email_system_notifications">System Notifications</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sound Notifications Section -->
+                <div class="notification-section">
+                    <h3>Sound Notifications</h3>
+                    <p class="notification-desc">Play sound alerts for important events.</p>
+                    
+                    <div class="form-group main-toggle">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="sound_notifications_enabled" name="sound_notifications_enabled">
+                            <label class="custom-control-label notification-toggle" for="sound_notifications_enabled">Enable All Sound Notifications</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input sound-notification" id="sound_incident_created" name="sound_incident_created">
+                            <label class="custom-control-label" for="sound_incident_created">New Incident Created</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input sound-notification" id="sound_incident_updated" name="sound_incident_updated">
+                            <label class="custom-control-label" for="sound_incident_updated">Incident Updated</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input sound-notification" id="sound_incident_closed" name="sound_incident_closed">
+                            <label class="custom-control-label" for="sound_incident_closed">Incident Closed</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input sound-notification" id="sound_unit_assigned" name="sound_unit_assigned">
+                            <label class="custom-control-label" for="sound_unit_assigned">Unit Assignment</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group notification-type">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input sound-notification" id="sound_unit_status_changed" name="sound_unit_status_changed">
+                            <label class="custom-control-label" for="sound_unit_status_changed">Unit Status Changed</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mt-4">
+                    <button type="button" id="save-preferences" class="btn btn-primary save-btn">
+                        <i class="fas fa-save"></i> Save Preferences
+                    </button>
+                    <span id="save-status" class="ml-3"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        // Load current preferences
+        loadPreferences();
+        
+        // Main toggle behavior
+        $("#app_notifications_enabled").change(function() {
+            let isChecked = $(this).prop('checked');
+            $(".app-notification").prop('disabled', !isChecked);
+            if (!isChecked) {
+                $(".app-notification").prop('checked', false);
+            }
+        });
+        
+        $("#email_notifications_enabled").change(function() {
+            let isChecked = $(this).prop('checked');
+            $(".email-notification").prop('disabled', !isChecked);
+            if (!isChecked) {
+                $(".email-notification").prop('checked', false);
+            }
+        });
+        
+        $("#sound_notifications_enabled").change(function() {
+            let isChecked = $(this).prop('checked');
+            $(".sound-notification").prop('disabled', !isChecked);
+            if (!isChecked) {
+                $(".sound-notification").prop('checked', false);
+            }
+        });
+        
+        // Save preferences
+        $("#save-preferences").click(function() {
+            savePreferences();
+        });
+    });
+    
+    function loadPreferences() {
+        // Show loading spinner
+        $("#save-status").html('<i class="fas fa-spinner fa-spin"></i> Loading preferences...');
+        
+        // Get preferences from API
+        $.ajax({
+            url: '/api/notification/preferences',
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    let prefs = response.preferences;
+                    
+                    // Set form values
+                    for (let key in prefs) {
+                        $("#" + key).prop('checked', prefs[key]);
+                    }
+                    
+                    // Update disabled state for sub-options
+                    updateDisabledState('app_notifications_enabled', '.app-notification');
+                    updateDisabledState('email_notifications_enabled', '.email-notification');
+                    updateDisabledState('sound_notifications_enabled', '.sound-notification');
+                    
+                    $("#save-status").html('');
+                } else {
+                    $("#save-status").html('<span class="text-danger">Error loading preferences</span>');
+                }
+            },
+            error: function() {
+                $("#save-status").html('<span class="text-danger">Error loading preferences</span>');
+            }
+        });
+    }
+    
+    function updateDisabledState(mainToggleId, subTogglesClass) {
+        let isEnabled = $("#" + mainToggleId).prop('checked');
+        $(subTogglesClass).prop('disabled', !isEnabled);
+    }
+    
+    function savePreferences() {
+        // Collect all form data
+        let formData = {};
+        $("#notification-form input[type='checkbox']").each(function() {
+            formData[$(this).attr('name')] = $(this).prop('checked');
+        });
+        
+        // Show saving indicator
+        $("#save-status").html('<i class="fas fa-spinner fa-spin"></i> Saving preferences...');
+        
+        // Send to API
+        $.ajax({
+            url: '/api/notification/preferences',
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    $("#save-status").html('<span class="text-success"><i class="fas fa-check"></i> Preferences saved successfully</span>');
+                    setTimeout(function() {
+                        $("#save-status").html('');
+                    }, 3000);
+                } else {
+                    $("#save-status").html('<span class="text-danger"><i class="fas fa-times"></i> ' + response.message + '</span>');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = "Error saving preferences";
+                try {
+                    let response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {}
+                
+                $("#save-status").html('<span class="text-danger"><i class="fas fa-times"></i> ' + errorMessage + '</span>');
+            }
+        });
+    }
+</script>
+{% endblock %}

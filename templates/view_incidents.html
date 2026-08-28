@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Incidents{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/incidents.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Incidents</h2>
+                {% if current_user.can(Permission.MANAGE_INCIDENTS) %}
+                <a href="{{ url_for('pages.incident') }}" class="btn btn-primary" id="createIncidentButton">
+                    <i class="fas fa-plus me-2"></i>New Incident
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="incidentsTable">
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Type</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Incidents will be populated via WebSocket -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Incident Modal -->
+<div class="modal fade" id="newIncidentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Incident</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newIncidentForm" onsubmit="return createIncident(this)">
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="">Select type...</option>
+                            {% for type in incident_types %}
+                            <option value="{{ type }}">{{ type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <select class="form-select" id="priority" name="priority" required>
+                            <option value="">Select priority...</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">New Incident</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize Socket.IO
+const socket = io();
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Request initial data
+    socket.emit('get_active_incidents');
+    
+    // Listen for active incidents update
+    socket.on('active_incidents_update', function(incidents) {
+        updateIncidentsTable(incidents);
+    });
+    
+    // Listen for incident updates
+    socket.on('incident_update', function(data) {
+        // Refresh the incidents list
+        socket.emit('get_active_incidents');
+    });
+    
+    // New Incident Modal
+    document.getElementById('newIncidentModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('newIncidentForm').reset();
+    });
+    
+    // Create Incident form
+    document.getElementById('newIncidentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createIncident(this);
+    });
+});
+
+function updateIncidentsTable(incidents) {
+    const tbody = document.getElementById('incidentsTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    
+    incidents.forEach(incident => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${incident.incident_number}</td>
+            <td>${incident.incident_type}</td>
+            <td>
+                <span class="badge bg-${getPriorityColor(incident.priority)}">
+                    ${incident.priority === 1 ? 'High' : incident.priority === 2 ? 'Medium' : 'Low'}
+                </span>
+            </td>
+            <td>
+                <span class="badge bg-${getStatusColor(incident.status)}">
+                    ${incident.status.replace('_', ' ')}
+                </span>
+            </td>
+            <td>${incident.location}</td>
+            <td>${formatDate(incident.created_at)}</td>
+            <td>
+                <div class="btn-group">
+                    <a href="/incidents/${incident.id}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    {% if current_user.can(Permission.MANAGE_INCIDENTS) %}
+                    <a href="/incidents/${incident.id}/edit" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function getStatusColor(status) {
+    switch (status) {
+        case 'pending': return 'warning';
+        case 'in_progress': return 'info';
+        case 'closed': return 'success';
+        default: return 'secondary';
+    }
+}
+
+function getPriorityColor(priority) {
+    switch (priority) {
+        case 1: return 'danger';
+        case 2: return 'warning';
+        case 3: return 'info';
+        default: return 'secondary';
+    }
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+}
+
+function createIncident(form) {
+    const formData = new FormData(form);
+    socket.emit('create_incident', {
+        type: formData.get('type'),
+        priority: formData.get('priority'),
+        location: formData.get('location'),
+        description: formData.get('description')
+    });
+}
+
+function showNewIncident() {
+    document.getElementById('newIncidentModal').modal('show');
+}
+</script>
+
+{% block styles %}
+<style>
+.table-responsive {
+    margin-bottom: 1rem;
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+
+.btn-group {
+    gap: 0.25rem;
+}
+
+#searchForm .input-group {
+    max-width: 500px;
+}
+
+#filterForm select {
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+}
+</style>
+{% endblock %}
+{% endblock %}

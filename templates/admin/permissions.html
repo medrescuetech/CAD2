@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}User Permissions{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<style>
+    .permissions-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="permissions-loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <h2>User Permissions</h2>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Users</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group" id="userList">
+                        {% for user in users %}
+                        <button type="button" 
+                                class="list-group-item list-group-item-action" 
+                                data-user-id="{{ user.id }}"
+                                onclick="loadUserPermissions({{ user.id }})">
+                            {{ user.username }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0" id="selectedUserName">Permissions</h5>
+                </div>
+                <div class="card-body">
+                    <div id="permissionsContainer">
+                        <p class="text-muted">Select a user to view and edit their permissions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+let currentUserId = null;
+
+// Handle WebSocket events
+socket.on('connect', () => {
+    console.log('Connected to WebSocket');
+});
+
+socket.on('connect_error', (error) => {
+    showAlert('Connection error: ' + error.message, 'danger');
+});
+
+socket.on('permissions_data', (data) => {
+    document.querySelector('.permissions-loading').style.display = 'none';
+    updatePermissionsDisplay(data);
+});
+
+socket.on('permissions_updated', () => {
+    document.querySelector('.permissions-loading').style.display = 'none';
+    showAlert('Permissions updated successfully', 'success');
+});
+
+socket.on('permissions_error', (error) => {
+    document.querySelector('.permissions-loading').style.display = 'none';
+    showAlert(error.message || 'Error updating permissions', 'danger');
+});
+
+function loadUserPermissions(userId) {
+    currentUserId = userId;
+    
+    // Highlight selected user
+    document.querySelectorAll('#userList .list-group-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-user-id="${userId}"]`).classList.add('active');
+    
+    // Show loading indicator
+    document.querySelector('.permissions-loading').style.display = 'flex';
+    
+    // Request user permissions
+    fetch(`/api/users/${userId}/permissions`)
+        .then(response => response.json())
+        .then(data => updatePermissionsDisplay(data))
+        .catch(error => {
+            console.error('Error loading permissions:', error);
+            showAlert('danger', 'Failed to load permissions');
+        })
+        .finally(() => {
+            document.querySelector('.permissions-loading').style.display = 'none';
+        });
+}
+
+function updatePermissions() {
+    if (!currentUserId) {
+        showAlert('warning', 'No user selected');
+        return;
+    }
+
+    const permissions = Array.from(document.querySelectorAll('input[name="permissions"]:checked'))
+        .map(input => input.value);
+    
+    // Show loading indicator
+    document.querySelector('.permissions-loading').style.display = 'flex';
+    
+    fetch(`/api/users/${currentUserId}/permissions`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ permissions })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Update failed');
+        showAlert('success', 'Permissions updated successfully');
+    })
+    .catch(error => {
+        console.error('Update error:', error);
+        showAlert('danger', 'Failed to update permissions');
+    })
+    .finally(() => {
+        document.querySelector('.permissions-loading').style.display = 'none';
+    });
+}
+
+function updatePermissionsDisplay(data) {
+    const container = document.getElementById('permissionsContainer');
+    const userName = document.getElementById('selectedUserName');
+    userName.textContent = `Permissions - ${data.username}`;
+    
+    let html = '<form id="permissionsForm" class="needs-validation" novalidate>';
+    html += '<div class="row">';
+    
+    // Group permissions by category
+    const categories = {
+        'Incidents': ['VIEW_INCIDENTS', 'CREATE_INCIDENTS', 'EDIT_INCIDENTS', 'DELETE_INCIDENTS', 'CLOSE_INCIDENTS'],
+        'Units': ['VIEW_UNITS', 'CREATE_UNITS', 'EDIT_UNITS', 'DELETE_UNITS'],
+        'Logs': ['VIEW_LOGS', 'CREATE_LOGS', 'EDIT_LOGS', 'DELETE_LOGS'],
+        'Admin': ['ADMIN', 'MANAGE_USERS', 'MANAGE_ROLES', 'VIEW_REPORTS', 'SYSTEM_SETTINGS']
+    };
+    
+    for (const [category, perms] of Object.entries(categories)) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">${category}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+        `;
+        
+        perms.forEach(perm => {
+            const checked = data.permissions.includes(perm) ? 'checked' : '';
+            html += `
+                <div class="list-group-item">
+                    <div class="form-check">
+                        <input type="checkbox" 
+                               class="form-check-input" 
+                               id="${perm}" 
+                               name="permissions" 
+                               value="${perm}"
+                               ${checked}
+                               onchange="updatePermissions()">
+                        <label class="form-check-label" for="${perm}">
+                            ${perm.replace(/_/g, ' ').toLowerCase()}
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div></div>';
+    }
+    
+    html += '</div></form>';
+    container.innerHTML = html;
+}
+
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '1050';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+
+{% block styles %}
+<style>
+.list-group-item {
+    cursor: pointer;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.alert {
+    margin-top: 1rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+}
+
+.permissions-card {
+    height: 100%;
+}
+
+.form-check-label {
+    text-transform: capitalize;
+}
+</style>
+{% endblock %}

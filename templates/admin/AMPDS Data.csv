@@ -1,0 +1,274 @@
+﻿ID,Category,Card Number,Priority,Subcategory,Dispatch Advice,PreArrival
+1,Abdominal Pain,1D1,1,Not alert,Ambulance,/Pre-Arrival/
+2,Abdominal Pain,1C1,2,Fainting or near fainting >50 y/o,Ambulance,/Pre-Arrival/
+3,Abdominal Pain,1C2,2,Females fainting or near fainting 12-50 y/o,Ambulance,/Pre-Arrival/
+4,Abdominal Pain,1C3,2,Males w/ pain above navel >45 y/o,Ambulance,/Pre-Arrival/
+5,Abdominal Pain,1C4,2,Females w/ pain above navel >45 y/o,Ambulance,/Pre-Arrival/
+6,Abdominal Pain,1A1,4,Abdominal pain,Ambulance,/Pre-Arrival/
+7,Allergic Reaction,2E,0,Ineffective breathing,Ambulance,/Pre-Arrival/
+8,Allergic Reaction,2D1,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+9,Allergic Reaction,2D2,1,Not alert,Ambulance,/Pre-Arrival/
+10,Allergic Reaction,2D3,1,Condition worsening,Ambulance,/Pre-Arrival/
+11,Allergic Reaction,2D4,1,Swarm attack (bees),Ambulance,/Pre-Arrival/
+12,Allergic Reaction,2D5,1,Snakebite,Ambulance,/Pre-Arrival/
+13,Allergic Reaction,2C1,2,Difficulty breathing or swallowing,Ambulance,/Pre-Arrival/
+14,Allergic Reaction,2C2,2,Special medications or injections used,Ambulance,/Pre-Arrival/
+15,Allergic Reaction,2B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+16,Allergic Reaction,2A1,4,No difficulty breathing or swallowing,Ambulance,/Pre-Arrival/
+17,Allergic Reaction,2A2,4,Spider bite,Ambulance,/Pre-Arrival/
+18,Animal Bites,3D1,1,Unconscious or arrest,Ambulance,/Pre-Arrival/
+19,Animal Bites,3D2,1,Not alert,Ambulance,/Pre-Arrival/
+20,Animal Bites,3D3,1,Dangerous body area,Ambulance,/Pre-Arrival/
+21,Animal Bites,3D4,1,Large animal,Ambulance,/Pre-Arrival/
+22,Animal Bites,3D5,1,Exotic animal,Ambulance,/Pre-Arrival/
+23,Animal Bites,3D6,1,Attack or multiple attack,Ambulance,/Pre-Arrival/
+24,Animal Bites,3B1,3,Possibly dangerous body part,Ambulance,/Pre-Arrival/
+25,Animal Bites,3B2,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+26,Animal Bites,3B3,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+27,Animal Bites,3A1,4,Not dangerous body area,Ambulance,/Pre-Arrival/
+28,Animal Bites,3A2,4,Non-recent injuries >6 hours,Ambulance,/Pre-Arrival/
+29,Animal Bites,3A3,4,Superficial bites,Ambulance,/Pre-Arrival/
+30,Assault,4D1,1,Unconscious or arrest,Ambulance,/Pre-Arrival/
+31,Assault,4D2,1,Not alert,Ambulance,/Pre-Arrival/
+32,Assault,4D3,1,Abnormal breathing,Ambulance,/Pre-Arrival/
+33,Assault,4D4,1,Dangerous body area,Ambulance,/Pre-Arrival/
+34,Assault,4D5,1,Multiple victims,Ambulance,/Pre-Arrival/
+35,Assault,4B1,3,Possibly dangerous body area,Ambulance,/Pre-Arrival/
+36,Assault,4B2,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+37,Assault,4B3,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+38,Assault,4A1,4,Not dangerous body area,Ambulance,/Pre-Arrival/
+39,Assault,4A2,4,Non-recent injuries >6 hours,Ambulance,/Pre-Arrival/
+40,Category Name,Subcategory Code,Priority,Description,Ambulance,/Pre-Arrival/
+41,Back Pain,5D1,1,Not alert,Ambulance,/Pre-Arrival/
+42,Back Pain,5C1,2,Fainting or near fainting >50 y/o,Ambulance,/Pre-Arrival/
+43,Back Pain,5A1,4,Non-traumatic,Ambulance,/Pre-Arrival/
+44,Back Pain,5A2,4,Non-recent injuries >6 hours,Ambulance,/Pre-Arrival/
+45,Breathing Difficulty,6.00E+01,0,Ineffective breathing,Ambulance,/Pre-Arrival/
+46,Breathing Difficulty,6D1,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+47,Breathing Difficulty,6D2,1,Not alert,Ambulance,/Pre-Arrival/
+48,Breathing Difficulty,6D3,1,Clammy,Ambulance,/Pre-Arrival/
+49,Breathing Difficulty,6C1,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+50,Breathing Difficulty,6C2,2,Cardiac history,Ambulance,/Pre-Arrival/
+51,Burn Subject,7D1,1,Unconscious or arrest,Ambulance,/Pre-Arrival/
+52,Burn Subject,7D2,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+53,Burn Subject,7D3,1,Not alert,Ambulance,/Pre-Arrival/
+54,Burn Subject,7D4,1,Explosion,Ambulance,/Pre-Arrival/
+55,Burn Subject,7D5,1,Multiple victims,Ambulance,/Pre-Arrival/
+56,Burn Subject,7C1,2,Building fire w/ persons inside,Ambulance,/Pre-Arrival/
+57,Burn Subject,7C2,2,Difficulty breathing,Ambulance,/Pre-Arrival/
+58,Burn Subject,7C3,2,Burns >18% BSA,Ambulance,/Pre-Arrival/
+59,Burn Subject,7B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+60,Burn Subject,7A1,4,Burns <18% BSA,Ambulance,/Pre-Arrival/
+61,Burn Subject,7A2,4,Fire alarm unknown situation,Ambulance,/Pre-Arrival/
+62,Burn Subject,7A3,4,Sunburn or minor burn,Ambulance,/Pre-Arrival/
+63,Hazardous Exposure,8D1,1,Unconscious or arrest,Ambulance,/Pre-Arrival/
+64,Hazardous Exposure,8D2,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+65,Hazardous Exposure,8D3,1,HAZMAT,Ambulance,/Pre-Arrival/
+66,Hazardous Exposure,8D4,1,Not alert,Ambulance,/Pre-Arrival/
+67,Hazardous Exposure,8D5,1,Multiple victims,Ambulance,/Pre-Arrival/
+68,Hazardous Exposure,8D6,1,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+69,Hazardous Exposure,8C1,2,Alert w/ difficulty breathing,Ambulance,/Pre-Arrival/
+70,Hazardous Exposure,8B1,3,Alert w/o difficulty breathing,Ambulance,/Pre-Arrival/
+71,Hazardous Exposure,8A1,4,CO alarm--EMS requested,Ambulance,/Pre-Arrival/
+72,Cardiac Arrest,9.00E+01,0,Not breathing at all,Ambulance,/Pre-Arrival/
+73,Cardiac Arrest,9.00E+02,0,Breathing uncertain,Ambulance,/Pre-Arrival/
+74,Cardiac Arrest,9.00E+03,0,Hanging,Ambulance,/Pre-Arrival/
+75,Cardiac Arrest,9.00E+04,0,Strangulation,Ambulance,/Pre-Arrival/
+76,Cardiac Arrest,9.00E+05,0,Suffocation,Ambulance,/Pre-Arrival/
+77,Cardiac Arrest,9.00E+06,0,Underwater,Ambulance,/Pre-Arrival/
+78,Cardiac Arrest,9D1,1,Ineffective breathing,Ambulance,/Pre-Arrival/
+79,Cardiac Arrest,9B1,3,Obvious death,Ambulance,/Pre-Arrival/
+80,Chest Pain,10D1,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+81,Chest Pain,10D2,1,Not alert,Ambulance,/Pre-Arrival/
+82,Chest Pain,10D3,1,Clammy,Ambulance,/Pre-Arrival/
+83,Chest Pain,10C1,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+84,Chest Pain,10C2,2,Cardiac history,Ambulance,/Pre-Arrival/
+85,Chest Pain,10C3,2,Cocaine,Ambulance,/Pre-Arrival/
+86,Chest Pain,10C4,2,Breathing normally >35 y/o,Ambulance,/Pre-Arrival/
+87,Chest Pain,10A1,4,Breathing normally <35 y/o,Ambulance,/Pre-Arrival/
+88,Choking,1.10E+02,0,Choking verified/ineffective breathing,Ambulance,/Pre-Arrival/
+89,Choking,11D1,1,Not alert,Ambulance,/Pre-Arrival/
+90,Choking,11D2,1,Abnormal breathing,Ambulance,/Pre-Arrival/
+91,Choking,11A1,4,Not choking now,Ambulance,/Pre-Arrival/
+92,Seizures,12D1,1,Not breathing,Ambulance,/Pre-Arrival/
+93,Seizures,12D2,1,Continuous or multiple seizures,Ambulance,/Pre-Arrival/
+94,Seizures,12D3,1,Irregular breathing,Ambulance,/Pre-Arrival/
+95,Seizures,12D4,1,Breathing regularly not verified >35 y/o,Ambulance,/Pre-Arrival/
+96,Seizures,12C1,2,Pregnancy,Ambulance,/Pre-Arrival/
+97,Seizures,12C2,2,Diabetic,Ambulance,/Pre-Arrival/
+98,Seizures,12C3,2,Cardiac history,Ambulance,/Pre-Arrival/
+99,Seizures,12B1,3,Breathing regularly not verified,Ambulance,/Pre-Arrival/
+100,Seizures,12A1,4,Not seizing now & breathing verified,Ambulance,/Pre-Arrival/
+101,Diabetic Problems,13D1,1,Unconscious,Ambulance,/Pre-Arrival/
+102,Diabetic Problems,13C1,2,Not alert,Ambulance,/Pre-Arrival/
+103,Diabetic Problems,13C2,2,Abnormal behaviour,Ambulance,/Pre-Arrival/
+104,Diabetic Problems,13C3,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+105,Diabetic Problems,13A1,4,Alert,Ambulance,/Pre-Arrival/
+106,Drowning,14D1,1,Unconscious,Ambulance,/Pre-Arrival/
+107,Drowning,14D2,1,Not alert,Ambulance,/Pre-Arrival/
+108,Drowning,14D3,1,Diving or neck injury,Ambulance,/Pre-Arrival/
+109,Drowning,14D4,1,SCUBA accident,Ambulance,/Pre-Arrival/
+110,Drowning,14C1,2,Alert w/ abnormal breathing,Ambulance,/Pre-Arrival/
+111,Drowning,14B1,3,Alert & breathing normally w/ injuries,Ambulance,/Pre-Arrival/
+112,Drowning,14B2,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+113,Drowning,14A1,4,Alert & breathing normally w/o injuries,Ambulance,/Pre-Arrival/
+114,Electrocution,1.50E+02,0,Not breathing/ineffective breathing,Ambulance,/Pre-Arrival/
+115,Electrocution,15D1,1,Unconscious,Ambulance,/Pre-Arrival/
+116,Electrocution,15D2,1,Not disconnected from power,Ambulance,/Pre-Arrival/
+117,Electrocution,15D3,1,Power not off,Ambulance,/Pre-Arrival/
+118,Electrocution,15D4,1,Long fall >6 feet,Ambulance,/Pre-Arrival/
+119,Electrocution,15D5,1,Not alert,Ambulance,/Pre-Arrival/
+120,Electrocution,15D6,1,Abnormal breathing,Ambulance,/Pre-Arrival/
+121,Electrocution,15D7,1,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+122,Electrocution,15C1,2,Alert & breathing normally,Ambulance,/Pre-Arrival/
+123,Eye Problem,16D1,1,Not alert,Ambulance,/Pre-Arrival/
+124,Eye Problem,16B1,3,Severe eye injuries,Ambulance,/Pre-Arrival/
+125,Eye Problem,16A1,4,Moderate eye injuries,Ambulance,/Pre-Arrival/
+126,Eye Problem,16A2,4,Minor eye injuries,Ambulance,/Pre-Arrival/
+127,Eye Problem,16A3,4,Medical eye problems,Ambulance,/Pre-Arrival/
+128,Falls,17D1,1,Dangerous body area,Ambulance,/Pre-Arrival/
+129,Falls,17D2,1,Long fall >6 feet,Ambulance,/Pre-Arrival/
+130,Falls,17D3,1,Not alert,Ambulance,/Pre-Arrival/
+131,Falls,17D4,1,Abnormal breathing,Ambulance,/Pre-Arrival/
+132,Falls,17B1,3,Possibly dangerous body area,Ambulance,/Pre-Arrival/
+133,Falls,17B2,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+134,Falls,17B3,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+135,Falls,17A1,4,Not dangerous body area,Ambulance,/Pre-Arrival/
+136,Falls,17A2,4,Non-recent injuries >6 hours,Ambulance,/Pre-Arrival/
+137,Headache,18C1,2,Not alert,Ambulance,/Pre-Arrival/
+138,Headache,18C2,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+139,Headache,18C3,2,Speech problems,Ambulance,/Pre-Arrival/
+140,Headache,18C4,2,Sudden onset of severe pain,Ambulance,/Pre-Arrival/
+141,Headache,18C5,2,Numbness or paralysis,Ambulance,/Pre-Arrival/
+142,Headache,18C6,2,Change in behaviour,Ambulance,/Pre-Arrival/
+143,Headache,18B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+144,Headache,18A1,4,Breathing normally,Ambulance,/Pre-Arrival/
+145,Heart Problem,19D1,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+146,Heart Problem,19D2,1,Not alert,Ambulance,/Pre-Arrival/
+147,Heart Problem,19D3,1,Clammy,Ambulance,/Pre-Arrival/
+148,Heart Problem,19C1,2,Firing of AICD,Ambulance,/Pre-Arrival/
+149,Heart Problem,19C2,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+150,Heart Problem,19C3,2,Chest pain >35 y/o,Ambulance,/Pre-Arrival/
+151,Heart Problem,19C4,2,Cardiac history,Ambulance,/Pre-Arrival/
+152,Heart Problem,19C5,2,Cocaine,Ambulance,/Pre-Arrival/
+153,Heart Problem,19C6,2,Heart rate >130,Ambulance,/Pre-Arrival/
+154,Heart Problem,19B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+155,Heart Problem,19A1,4,Heart rate >50 or <5 months,Ambulance,/Pre-Arrival/
+156,Heart Problem,19A2,4,Chest pain <35 y/o w/o symptoms,Ambulance,/Pre-Arrival/
+157,Environmental Exposure,20D1,1,Not alert,Ambulance,/Pre-Arrival/
+158,Environmental Exposure,20C1,2,Cardiac history,Ambulance,/Pre-Arrival/
+159,Environmental Exposure,20B1,3,Change in skin colour,Ambulance,/Pre-Arrival/
+160,Environmental Exposure,20B2,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+161,Environmental Exposure,20A1,4,Alert,Ambulance,/Pre-Arrival/
+162,Hemorrhage,21D1,1,Dangerous hemorrhage,Ambulance,/Pre-Arrival/
+163,Hemorrhage,21D2,1,Not alert,Ambulance,/Pre-Arrival/
+164,Hemorrhage,21D3,1,Abnormal breathing,Ambulance,/Pre-Arrival/
+165,Hemorrhage,21C1,2,Hemorrhage through a tube,Ambulance,/Pre-Arrival/
+166,Hemorrhage,21B1,3,Possibly dangerous hemorrhage,Ambulance,/Pre-Arrival/
+167,Hemorrhage,21B2,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+168,Hemorrhage,21B3,3,Bleeding disorder or blood thinners,Ambulance,/Pre-Arrival/
+169,Hemorrhage,21A1,4,Non-dangerous hemorrhage,Ambulance,/Pre-Arrival/
+170,Hemorrhage,21A2,4,Minor hemorrhage,Ambulance,/Pre-Arrival/
+171,Industrial Accidents,22D1,1,Life status questionable,Ambulance,/Pre-Arrival/
+172,Industrial Accidents,22D2,1,Caught in machinery,Ambulance,/Pre-Arrival/
+173,Industrial Accidents,22D3,1,Multiple victims,Ambulance,/Pre-Arrival/
+174,Industrial Accidents,22B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+175,Overdose,23D1,1,Unconscious,Ambulance,/Pre-Arrival/
+176,Overdose,23D2,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+177,Overdose,23C1,2,Violent,Ambulance,/Pre-Arrival/
+178,Overdose,23C2,2,Not alert,Ambulance,/Pre-Arrival/
+179,Overdose,23C3,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+180,Overdose,23C4,2,Antidepressants,Ambulance,/Pre-Arrival/
+181,Overdose,23C5,2,Cocaine,Ambulance,/Pre-Arrival/
+182,Overdose,23C6,2,Narcotics,Ambulance,/Pre-Arrival/
+183,Overdose,23C7,2,Acid or alkali,Ambulance,/Pre-Arrival/
+184,Overdose,23C8,2,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+185,Overdose,23C9,2,Poison Control request for response,Ambulance,/Pre-Arrival/
+186,Overdose,23B1,3,Overdose w/o symptoms,Ambulance,/Pre-Arrival/
+187,Overdose,23O1,4,Poisoning w/o priority symptoms,Ambulance,/Pre-Arrival/
+188,Psychiatric Problem,25D1,1,Not alert,Ambulance,/Pre-Arrival/
+189,Psychiatric Problem,25B1,3,Violent,Ambulance,/Pre-Arrival/
+190,Psychiatric Problem,25B2,3,Threatening suicide,Ambulance,/Pre-Arrival/
+191,Psychiatric Problem,25B3,3,Near hanging,Ambulance,/Pre-Arrival/
+192,Psychiatric Problem,25B4,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+193,Psychiatric Problem,25A1,4,Non-violent & non-suicidal,Ambulance,/Pre-Arrival/
+194,Sick Call,26D1,1,Not alert,Ambulance,/Pre-Arrival/
+195,Sick Call,26C1,2,Cardiac history,Ambulance,/Pre-Arrival/
+196,Sick Call,26B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+197,Sick Call,26A1,4,Non-priority symptoms,Ambulance,/Pre-Arrival/
+198,Stab/Gunshot/Penetrating Trauma,27D1,1,Unconscious or arrest,Ambulance,/Pre-Arrival/
+199,Stab/Gunshot/Penetrating Trauma,27D2,1,Not alert,Ambulance,/Pre-Arrival/
+200,Stab/Gunshot/Penetrating Trauma,27D3,1,Central wounds,Ambulance,/Pre-Arrival/
+201,Stab/Gunshot/Penetrating Trauma,27D4,1,Multiple wounds,Ambulance,/Pre-Arrival/
+202,Stab/Gunshot/Penetrating Trauma,27D5,1,Multiple victims,Ambulance,/Pre-Arrival/
+203,Stab/Gunshot/Penetrating Trauma,27B1,3,Non-recent injuries >6 hours / central wounds,Ambulance,/Pre-Arrival/
+204,Stab/Gunshot/Penetrating Trauma,27B2,3,Known single peripheral wound,Ambulance,/Pre-Arrival/
+205,Stab/Gunshot/Penetrating Trauma,27B3,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+206,Stab/Gunshot/Penetrating Trauma,27B4,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+207,Stab/Gunshot/Penetrating Trauma,27A1,4,Non-recent >6 hours / peripheral wounds,Ambulance,/Pre-Arrival/
+208,Stroke,28C1,2,Not alert,Ambulance,/Pre-Arrival/
+209,Stroke,28C2,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+210,Stroke,28C3,2,Speech or movement problems,Ambulance,/Pre-Arrival/
+211,Stroke,28C4,2,Numbness or tingling,Ambulance,/Pre-Arrival/
+212,Stroke,28C5,2,Stroke history,Ambulance,/Pre-Arrival/
+213,Stroke,28C6,2,Breathing normally >35 y/o,Ambulance,/Pre-Arrival/
+214,Stroke,28B1,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+215,Stroke,28A1,4,Breathing normally <35 y/o,Ambulance,/Pre-Arrival/
+216,Traffic Collision,29D1A,1,Major incident (aircraft),Ambulance,/Pre-Arrival/
+217,Traffic Collision,29D1B,1,Major incident (bus),Ambulance,/Pre-Arrival/
+218,Traffic Collision,29D1D,1,Major incident (train),Ambulance,/Pre-Arrival/
+219,Traffic Collision,29D1E,1,Major incident (watercraft),Ambulance,/Pre-Arrival/
+220,Traffic Collision,29D2A,1,High mechanism (all-terrain),Ambulance,/Pre-Arrival/
+221,Traffic Collision,29D2B,1,High mechanism (motorcycle),Ambulance,/Pre-Arrival/
+222,Traffic Collision,29D2C,1,High mechanism (auto-pedestrian),Ambulance,/Pre-Arrival/
+223,Traffic Collision,29D2D,1,High mechanism (ejection),Ambulance,/Pre-Arrival/
+224,Traffic Collision,29D2E,1,High mechanism (personal watercraft),Ambulance,/Pre-Arrival/
+225,Traffic Collision,29D2F,1,High mechanism (rollover),Ambulance,/Pre-Arrival/
+226,Traffic Collision,29D2G,1,High mechanism (vehicle off bridge/height),Ambulance,/Pre-Arrival/
+227,Traffic Collision,29D3,1,HAZMAT,Ambulance,/Pre-Arrival/
+228,Traffic Collision,29D4,1,Pinned,Ambulance,/Pre-Arrival/
+229,Traffic Collision,29D5,1,Not alert,Ambulance,/Pre-Arrival/
+230,Traffic Collision,29B1,3,Injuries,Ambulance,/Pre-Arrival/
+231,Traffic Collision,29B2,3,Multiple victims (one unit),Ambulance,/Pre-Arrival/
+232,Traffic Collision,29B3,3,Multiple victims (additional units),Ambulance,/Pre-Arrival/
+233,Traffic Collision,29B4,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+234,Traffic Collision,29B5,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+235,Traffic Collision,29A1,4,1st party caller w/ non-dangerous injury,Ambulance,/Pre-Arrival/
+236,Traumatic Injuries,30D1,1,Dangerous body area,Ambulance,/Pre-Arrival/
+237,Traumatic Injuries,30D2,1,Not alert,Ambulance,/Pre-Arrival/
+238,Traumatic Injuries,30D3,1,Abnormal breathing,Ambulance,/Pre-Arrival/
+239,Traumatic Injuries,30B1,3,Possibly dangerous body area,Ambulance,/Pre-Arrival/
+240,Traumatic Injuries,30B2,3,Serious hemorrhage,Ambulance,/Pre-Arrival/
+241,Traumatic Injuries,30A1,4,Not dangerous body area,Ambulance,/Pre-Arrival/
+242,Traumatic Injuries,30A2,4,Non-recent injuries (≥ 6hrs),Ambulance,/Pre-Arrival/
+243,Subject Unconscious,3.10E+02,0,Ineffective breathing,Ambulance,/Pre-Arrival/
+244,Subject Unconscious,31D1,1,Unconscious,Ambulance,/Pre-Arrival/
+245,Subject Unconscious,31D2,1,Severe respiratory distress,Ambulance,/Pre-Arrival/
+246,Subject Unconscious,31D3,1,Not alert,Ambulance,/Pre-Arrival/
+247,Subject Unconscious,31C1,2,Alert w/ abnormal breathing,Ambulance,/Pre-Arrival/
+248,Subject Unconscious,31C2,2,Cardiac history,Ambulance,/Pre-Arrival/
+249,Subject Unconscious,31C3,2,Multiple fainting episodes,Ambulance,/Pre-Arrival/
+250,Subject Unconscious,31C4,2,Single or near fainting episodes & alert,Ambulance,/Pre-Arrival/
+251,Subject Unconscious,31C5,2,Female 12-50 y/o w/ abdominal pain,Ambulance,/Pre-Arrival/
+252,Medical Nature Unknown,32D1,1,Life status questionable,Ambulance,/Pre-Arrival/
+253,Medical Nature Unknown,32B1,3,"Standing, moving, sitting, or talking",Ambulance,/Pre-Arrival/
+254,Medical Nature Unknown,32B2,3,Medical alert notification,Ambulance,/Pre-Arrival/
+255,Medical Nature Unknown,32B3,3,Unknown status (3rd party caller),Ambulance,/Pre-Arrival/
+256,Transfer,33D1,1,Suspected cardiac or respiratory arrest,Ambulance,/Pre-Arrival/
+257,Transfer,33C1,2,Not alert (acute change),Ambulance,/Pre-Arrival/
+258,Transfer,33C2,2,Abnormal breathing,Ambulance,/Pre-Arrival/
+259,Transfer,33C3,2,Significant hemorrhage or shock,Ambulance,/Pre-Arrival/
+260,Transfer,33C4,2,Possible acute heart problems or MI,Ambulance,/Pre-Arrival/
+261,Transfer,33C5,2,Acute severe pain,Ambulance,/Pre-Arrival/
+262,Transfer,33C6,2,Emergency response requested,Ambulance,/Pre-Arrival/
+263,Transfer,33A1,4,No priority symptoms,Ambulance,/Pre-Arrival/
+264,Clinician Request,CC00,0,Clin Request Pri 0,Ambulance,/Pre-Arrival/
+265,Clinician Request,CC01,1,Clin Request Pri 1,Ambulance,/Pre-Arrival/
+266,Clinician Request,CC02,2,Clin Request Pri 2,Ambulance,/Pre-Arrival/
+267,Clinician Request,CC03,3,Clin Request Pri 3,Ambulance,/Pre-Arrival/
+268,Field Event,FE00,0,Field Event - Pri 0,Ambulance,/Pre-Arrival/
+269,Field Event,FE01,1,Field Event - Pri 1,Ambulance,/Pre-Arrival/
+270,Field Event,FE02,2,Field Event - Pri 2,Ambulance,/Pre-Arrival/
+271,Field Event,FE03,3,Field Event - Pri 3,Ambulance,/Pre-Arrival/
+272,Field Event,FE04,4,Field Event - Pri 4,Ambulance,/Pre-Arrival/
+273,Standby Event,STAN,2,Standby Event,Ambulance,/Pre-Arrival/
