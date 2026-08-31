@@ -150,6 +150,7 @@ class ProductionConfig(Config):
         # Configure production-specific handlers
         import logging
         from logging.handlers import RotatingFileHandler
+        os.makedirs('logs', exist_ok=True)
         file_handler = RotatingFileHandler(
             'logs/error.log',
             maxBytes=Config.LOG_MAX_BYTES,
