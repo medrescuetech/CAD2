@@ -25,8 +25,11 @@ import functools
 import time
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-import tkinter as tk
-from tkinter import ttk
+
+try:
+    import tkinter as tk
+except ImportError:  # Tk is only needed for the optional desktop launcher
+    tk = None
 
 from flask import Flask, render_template, request, jsonify, current_app, make_response, g, session
 from flask_login import LoginManager, current_user, login_required
@@ -112,7 +115,10 @@ def create_app(config_name=None):
     # Support passing a dict of overrides for tests
     if isinstance(config_name, dict):
         overrides = config_name
-        config_name = os.environ.get('FLASK_ENV', 'production')
+        if overrides.get('TESTING'):
+            config_name = 'testing'
+        else:
+            config_name = os.environ.get('FLASK_ENV', 'production')
     
     # Determine config name if not provided
     if config_name is None:
@@ -209,9 +215,25 @@ def create_app(config_name=None):
     # Return the configured Flask application
     return app
     
+def _sanitize_engine_options(app):
+    """Drop connection-pool options that SQLite's pool classes do not accept."""
+    uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if not uri.startswith('sqlite'):
+        return
+
+    options = dict(app.config.get('SQLALCHEMY_ENGINE_OPTIONS') or {})
+    for option in ('pool_size', 'max_overflow', 'pool_timeout'):
+        options.pop(option, None)
+    options.pop('poolclass', None)
+    options.setdefault('connect_args', {'check_same_thread': False})
+    options['poolclass'] = StaticPool
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = options
+
+
 def initialize_extensions(app):
     """Initialize Flask extensions."""
     # SQLAlchemy
+    _sanitize_engine_options(app)
     db.init_app(app)
     
     # Flask-Migrate
@@ -792,6 +814,10 @@ class ServerManager:
 
     def create_gui(self):
         """Create the GUI window."""
+        if tk is None:
+            raise RuntimeError(
+                'tkinter is not available; install python3-tk to use the desktop launcher'
+            )
         self.root = tk.Tk()
         self.root.title("CAD System Server Manager")
         self.root.geometry("300x200")
