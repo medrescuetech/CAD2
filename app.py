@@ -49,6 +49,8 @@ from extensions import db, migrate, csrf, mail, limiter, socketio, session_facto
 
 # Import models
 from models import User, Role, Permission, APIKey, AuditLog
+import core.models  # Register ecosystem shared-core tables
+import core.chronology  # Attach append-only chronology listeners
 from blueprints.pages import pages
 from blueprints.auth import auth
 from blueprints.api import api
@@ -66,6 +68,7 @@ from blueprints.daily_log_api import daily_log_api
 from blueprints.ampds_api import ampds_api
 from blueprints.system_admin import system_admin_bp
 from blueprints.data_management import data_mgmt_bp
+from blueprints.core_api import core_api
 from api.endpoints import api_endpoints
 from utils.log_setup import setup_logger  # Changed from logging_config import
 import websocket_events  # Import WebSocket event handlers
@@ -330,6 +333,7 @@ def register_blueprints(app):
     app.register_blueprint(reporting_bp, url_prefix='/api/reports')
     # locations blueprint defines absolute '/locations/...'; do not add extra prefix
     app.register_blueprint(locations_bp)
+    app.register_blueprint(core_api, url_prefix='/api/core')
     
     # Web Interface Blueprints
     app.register_blueprint(pages, url_prefix='/')

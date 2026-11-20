@@ -7,6 +7,7 @@ import json
 import hashlib
 import secrets
 import csv
+import uuid
 from sqlalchemy import func
 
 class Permission:
@@ -606,8 +607,28 @@ class Incident(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    
+
+    # --- CAD ecosystem shared-core fields ---
+    incident_uuid = db.Column(db.String(36), unique=True, index=True)
+    owning_application = db.Column(db.String(16), default='MAIN', index=True)
+    event_workspace_id = db.Column(db.Integer, db.ForeignKey('event_workspace.id'))
+    event_location_id = db.Column(db.Integer, db.ForeignKey('event_location.id'))
+    lifecycle_status = db.Column(db.String(24), default='NEW', index=True)
+    escalation_mode = db.Column(db.String(32))
+    escalated_at = db.Column(db.DateTime)
+    responsible_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    row_version = db.Column(db.Integer, default=1, nullable=False)
+    closed_at = db.Column(db.DateTime)
+    closed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    closure_outcome = db.Column(db.String(64))
+    urgent_update = db.Column(db.Boolean, default=False)
+
     # Relationships
+    event_workspace = db.relationship('EventWorkspace',
+                                      backref=db.backref('incidents', lazy='dynamic'))
+    event_location = db.relationship('EventLocation')
+    responsible_user = db.relationship('User', foreign_keys=[responsible_user_id])
+    closed_by = db.relationship('User', foreign_keys=[closed_by_id])
     created_by = db.relationship('User', 
                                 foreign_keys=[created_by_id],
                                 back_populates='incidents_created')
@@ -625,7 +646,7 @@ class Incident(db.Model):
                  caller=None, callback_number=None, latitude=None, longitude=None, 
                  location_id=None):
         self.incident_type_id = incident_type_id
-        self.set_priority(priority if priority else PRIORITY_MEDIUM)
+        self.set_priority(priority if priority else self.PRIORITY_MEDIUM)
         self.status = status
         self.location = location
         self.description = description
@@ -635,7 +656,9 @@ class Incident(db.Model):
         self.longitude = longitude
         self.location_id = location_id
         self.created_by_id = created_by_id
-        
+        if not self.incident_uuid:
+            self.incident_uuid = str(uuid.uuid4())
+
         if incident_number:
             self.incident_number = incident_number
         else:
@@ -808,6 +831,7 @@ class Incident(db.Model):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'caller': self.caller,
+            'event_location': self.event_location.to_dict() if self.event_location else None,
             'callback_number': self.callback_number,
             'description': self.description,
             'ampds_code': self.ampds_code,
@@ -817,6 +841,17 @@ class Incident(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'created_by_id': self.created_by_id,
             'updated_by_id': self.updated_by_id,
+            'incident_uuid': self.incident_uuid,
+            'owning_application': self.owning_application,
+            'event_workspace_id': self.event_workspace_id,
+            'event_location_id': self.event_location_id,
+            'lifecycle_status': self.lifecycle_status,
+            'escalation_mode': self.escalation_mode,
+            'responsible_user_id': self.responsible_user_id,
+            'row_version': self.row_version,
+            'closed_at': self.closed_at.isoformat() if self.closed_at else None,
+            'closure_outcome': self.closure_outcome,
+            'urgent_update': self.urgent_update,
             'assigned_units': assigned_units,
             'logs': logs
         }
