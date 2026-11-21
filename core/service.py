@@ -14,6 +14,7 @@ from datetime import datetime
 from extensions import db
 from models import Incident, Unit, User
 from core import chronology
+from core import pcr
 from core.chronology import ChronologyAction as CA
 from core.identifiers import new_incident_number, new_event_case_alias
 from core.models import (Alert, AlertAcknowledgement, AgencyNotification,
@@ -493,6 +494,8 @@ def route_intake(intake_id, target, actor, session=None):
            payload={'incident_number': incident.incident_number,
                     'owning_application': owning_app})
 
+    pcr.enqueue_job_update(incident, session=sess)
+
     for alert in applicable_alerts(incident, session=sess):
         _chron(CA.ALERT_PRESENTED, incident_id=incident.id, intake_id=intake.id,
                entity_type='alert', entity_id=alert.id, actor=actor,
@@ -612,8 +615,7 @@ def update_incident_fields(incident_id, fields, actor, expected_version,
             continue
         setattr(incident, field, new_value)
         sensitive = field in ('caller', 'callback_number')
-        chronology.field_change(
-            incident.id, field, old_value, new_value,
+        chronology.field_change(            incident.id, field, old_value, new_value,
             actor_id=_actor_id(actor), sensitive=sensitive,
             correlation_id=correlation, session=sess,
             source_application=source_application)
@@ -627,6 +629,7 @@ def update_incident_fields(incident_id, fields, actor, expected_version,
                 entity_id=incident.id, incident_id=incident.id, actor=actor,
                 correlation_id=correlation, source_application=source_application,
                 session=sess)
+    pcr.enqueue_job_update(incident, session=sess)
     return incident
 
 
@@ -719,6 +722,7 @@ def assign_unit(incident_id, unit_id, actor, role='primary', session=None):
            summary=f'Unit {unit.name} assigned as {role}',
            payload={'unit_id': unit.id, 'unit_name': unit.name,
                     'response_uuid': response.response_uuid, 'role': role})
+    pcr.enqueue_job_update(incident, session=sess)
     emit_outbox('UnitAssigned', entity_type='response', entity_id=response.id,
                 incident_id=incident.id, actor=actor,
                 source_application=incident.owning_application or Applications.MAIN,
@@ -784,6 +788,8 @@ def update_response_status(response_id, new_status, actor, reason=None,
                 correlation_id=correlation,
                 source_application=incident.owning_application
                 or Applications.MAIN, session=sess)
+    pcr.enqueue_status_event(incident, new_status, datetime.utcnow(),
+                             unit_callsign=str(unit_name), session=sess)
     return response
 
 
@@ -945,6 +951,8 @@ def cancel_as_duplicate(incident_id, surviving_id, actor, reason=None,
            summary=f'Cancelled as duplicate of incident {surviving_id}',
            payload={'before': old_status, 'surviving_incident_id': surviving_id,
                     'reason': reason})
+    pcr.enqueue_cancel(incident, reason or 'Cancelled by control',
+                       datetime.utcnow(), session=sess)
     return incident
 
 

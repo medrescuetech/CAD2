@@ -581,3 +581,36 @@ def list_outbox():
               .order_by(OutboxEvent.occurred_at.asc()).limit(200).all())
     return jsonify({'success': True,
                     'events': [e.to_dict() for e in events]})
+
+
+# ---------------------------------------------------------------------------
+# PCR integration (spec: PCR CAD integration API v0.1)
+# ---------------------------------------------------------------------------
+
+@core_api.route('/integrations/pcr/status', methods=['GET'])
+@login_required
+@permission_required(Permission.ADMIN)
+def pcr_status():
+    from core import pcr
+    return jsonify({'success': True, **pcr.queue_stats()})
+
+
+@core_api.route('/integrations/pcr/flush', methods=['POST'])
+@login_required
+@permission_required(Permission.ADMIN)
+def pcr_flush():
+    """Deliver due pending PCR outbox messages now."""
+    from core import pcr
+    return jsonify({'success': True, **pcr.deliver_pending(limit=200)})
+
+
+@core_api.route('/integrations/pcr/reconcile', methods=['POST'])
+@login_required
+@permission_required(Permission.ADMIN)
+def pcr_reconcile():
+    """Pull PCR's job list and re-send any job whose seq lags (spec §9)."""
+    from core import pcr
+    try:
+        return jsonify({'success': True, **pcr.reconcile()})
+    except Exception as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 502

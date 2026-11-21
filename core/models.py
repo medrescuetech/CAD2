@@ -849,6 +849,8 @@ class OutboxEvent(db.Model):
     idempotency_key = db.Column(db.String(64), unique=True)
     status = db.Column(db.String(16), default=STATUS_PENDING, index=True)
     retry_count = db.Column(db.Integer, default=0)
+    next_attempt_at = db.Column(db.DateTime)
+    last_error = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     actor = db.relationship('User', foreign_keys=[actor_user_id])
@@ -884,3 +886,38 @@ class NumberSequence(db.Model):
 
     scope = db.Column(db.String(64), primary_key=True)
     last_value = db.Column(db.Integer, default=0, nullable=False)
+
+
+class PcrJob(db.Model):
+    """Delivery state of one CAD job pushed to PCR (spec: pcr akmed cad/v1)."""
+    __tablename__ = 'pcr_job'
+
+    id = db.Column(db.Integer, primary_key=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey('incidents.id'),
+                            unique=True, nullable=False, index=True)
+    cad_job_id = db.Column(db.String(64), unique=True, nullable=False)
+    seq = db.Column(db.Integer, default=0, nullable=False)
+    delivered_seq = db.Column(db.Integer, default=0, nullable=False)
+    pcr_case_id = db.Column(db.String(64))
+    status = db.Column(db.String(16), default='PENDING', index=True)
+    # PENDING | SYNCED | FAILED (non-retryable error)
+    last_error = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+    incident = db.relationship('Incident', foreign_keys=[incident_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'incident_id': self.incident_id,
+            'cad_job_id': self.cad_job_id,
+            'seq': self.seq,
+            'delivered_seq': self.delivered_seq,
+            'pcr_case_id': self.pcr_case_id,
+            'status': self.status,
+            'last_error': self.last_error,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }

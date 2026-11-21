@@ -64,6 +64,7 @@ from blueprints.session_management import bp as session_management_bp
 from blueprints.ip_access import bp as ip_access_bp
 from blueprints.reporting import bp as reporting_bp
 from blueprints.locations import bp as locations_bp
+from blueprints.incidents import bp as incidents_bp
 from blueprints.daily_log_api import daily_log_api
 from blueprints.ampds_api import ampds_api
 from blueprints.system_admin import system_admin_bp
@@ -193,7 +194,22 @@ def create_app(config_name=None):
     if not (app.config.get('TESTING') or app.config.get('DISABLE_BACKGROUND_TASKS')):
         init_monitoring(app)
         init_scheduler(app)
-    
+        # PCR integration sender: delivers queued outbound messages to PCR
+        from core import pcr
+        if pcr.config()['enabled']:
+            threading.Thread(target=pcr.run_worker, args=(app,),
+                             daemon=True, name='pcr-delivery').start()
+
+    # Seed ecosystem reference data if the tables exist but are empty
+    with app.app_context():
+        try:
+            from core.models import CodeSet
+            from core.reference_data import insert_defaults
+            if CodeSet.query.count() == 0:
+                insert_defaults()
+        except Exception as exc:
+            app.logger.warning(f'Core reference-data seed skipped: {exc}')
+
     # Initialize asset optimization
     init_asset_optimization(app)
     
@@ -333,6 +349,9 @@ def register_blueprints(app):
     app.register_blueprint(reporting_bp, url_prefix='/api/reports')
     # locations blueprint defines absolute '/locations/...'; do not add extra prefix
     app.register_blueprint(locations_bp)
+    # incidents blueprint defines '/incidents/...' API routes; mount under /api
+    # so the frontend's /api/incidents* calls resolve
+    app.register_blueprint(incidents_bp, url_prefix='/api')
     app.register_blueprint(core_api, url_prefix='/api/core')
     
     # Web Interface Blueprints
