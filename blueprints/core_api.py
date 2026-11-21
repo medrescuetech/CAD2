@@ -181,10 +181,12 @@ def list_intakes():
 def create_intake():
     data = request.get_json(silent=True) or {}
     intake = service.create_intake(data, actor=current_user)
+    duplicates = service.suggest_intake_duplicates(intake.id)
     commit_err = _commit()
     if commit_err:
         return commit_err
-    return jsonify({'success': True, 'intake': intake.to_dict()}), 201
+    return jsonify({'success': True, 'intake': intake.to_dict(),
+                    'duplicate_candidates': duplicates}), 201
 
 
 @core_api.route('/intakes/<int:intake_id>', methods=['GET'])
@@ -194,6 +196,8 @@ def get_intake(intake_id):
     result = intake.to_dict()
     result['alerts'] = [a.to_dict() for a in
                         service.applicable_alerts(intake)]
+    result['duplicate_candidates'] = service.suggest_intake_duplicates(
+        intake_id)
     return jsonify({'success': True, 'intake': result})
 
 

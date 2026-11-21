@@ -260,3 +260,30 @@ def test_core_api_intake_route_flow(app, client):
     urgent_id = r.get_json()['urgent_message']['id']
     r = client.post(f'/api/core/urgent-messages/{urgent_id}/acknowledge')
     assert r.status_code == 200
+
+
+def test_intake_duplicate_suggestion(app, client):
+    """POST /intakes flags candidates matching an open incident's location/
+    callback; the surface is in the response, not a separate call."""
+    login(client, 'admin', 'admin')
+    r = client.post('/api/core/intakes', json={
+        'source': 'telephone', 'location_text': '10 Dup Lane',
+        'callback_number': '555-DUP'})
+    first = r.get_json()['intake']['id']
+    r = client.post(f'/api/core/intakes/{first}/route', json={'target': 'MAIN'})
+    incident_id = r.get_json()['incident']['id']
+
+    r = client.post('/api/core/intakes', json={
+        'source': 'telephone', 'location_text': '10 Dup Lane',
+        'callback_number': '555-DUP'})
+    assert r.status_code == 201
+    dups = r.get_json()['duplicate_candidates']
+    hit = [d for d in dups if d['incident']['id'] == incident_id]
+    assert hit, 'matching incident not suggested'
+    assert 'same location' in hit[0]['reasons']
+    assert 'same callback number' in hit[0]['reasons']
+
+    # service helper is read-only: no chronology written for the suggestion
+    from core.models import ChronologyEntry
+    assert ChronologyEntry.query.filter_by(
+        incident_id=incident_id, action_type='duplicate_suggested').count() == 0

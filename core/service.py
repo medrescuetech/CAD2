@@ -872,7 +872,7 @@ def suggest_duplicates(incident_id, window_minutes=60, session=None):
     """Return candidate duplicate open incidents with match reasons."""
     sess = session or db.session
     incident = _get(Incident, incident_id, 'Incident')
-    candidates = Incident.query.filter(
+    candidates = sess.query(Incident).filter(
         Incident.id != incident.id,
         Incident.lifecycle_status.notin_(('CLOSED', 'CANCELLED',
                                           'DUPLICATE_CANCELLED'))).all()
@@ -896,6 +896,33 @@ def suggest_duplicates(incident_id, window_minutes=60, session=None):
                entity_type='incident', entity_id=incident.id, session=sess,
                summary=f'{len(matches)} possible duplicate(s) suggested',
                payload={'candidates': [m['incident']['id'] for m in matches]})
+    return matches
+
+
+def suggest_intake_duplicates(intake_id, session=None):
+    """Duplicate candidates for an open intake (design 14): match open
+    incidents on location text, callback number, or event workspace.
+    Read-only: no chronology write (unlike incident-side suggestion)."""
+    sess = session or db.session
+    intake = _get(Intake, intake_id, 'Intake')
+    candidates = sess.query(Incident).filter(
+        Incident.lifecycle_status.notin_(('CLOSED', 'CANCELLED',
+                                          'DUPLICATE_CANCELLED'))).all()
+    matches = []
+    loc = (intake.location_text or '').strip().lower()
+    for other in candidates:
+        reasons = []
+        if loc and other.location and \
+                loc == other.location.strip().lower():
+            reasons.append('same location')
+        if intake.callback_number and \
+                intake.callback_number == other.callback_number:
+            reasons.append('same callback number')
+        if intake.event_workspace_id and \
+                intake.event_workspace_id == other.event_workspace_id:
+            reasons.append('same event workspace')
+        if reasons:
+            matches.append({'incident': other.to_dict(), 'reasons': reasons})
     return matches
 
 
