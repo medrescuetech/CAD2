@@ -721,3 +721,72 @@ def export_incident(incident_id):
                                 incident_id=incident_id).all()],
     }
     return jsonify({'success': True, 'bundle': bundle})
+
+
+# ---------------------------------------------------------------------------
+# Reporting exports (Phase 4)
+# ---------------------------------------------------------------------------
+
+import csv as _csv
+import io as _io
+from flask import Response as _FlaskResponse
+
+
+def _csv_response(filename, header, rows):
+    buf = _io.StringIO()
+    w = _csv.writer(buf)
+    w.writerow(header)
+    w.writerows(rows)
+    return _FlaskResponse(
+        buf.getvalue(), mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+
+
+@core_api.route('/incidents.csv', methods=['GET'])
+@login_required
+@permission_required(Permission.VIEW_INCIDENTS)
+def export_incidents_csv():
+    """CSV export of the incident list; same filters as GET /incidents."""
+    query = Incident.query
+    if request.args.get('open') == '1':
+        query = query.filter(Incident.lifecycle_status.notin_(
+            ('CLOSED', 'CANCELLED', 'DUPLICATE_CANCELLED')))
+    for arg, col in (('lifecycle_status', Incident.lifecycle_status),
+                     ('owning_application', Incident.owning_application),
+                     ('event_workspace_id', Incident.event_workspace_id),
+                     ('priority', Incident.priority)):
+        value = request.args.get(arg)
+        if value:
+            query = query.filter(col == value)
+    limit = min(int(request.args.get('limit', 1000)), 5000)
+    incidents = query.order_by(Incident.created_at.desc()).limit(limit).all()
+    return _csv_response(
+        'incidents.csv',
+        ['id', 'incident_number', 'priority', 'lifecycle_status',
+         'owning_application', 'location', 'caller', 'callback_number',
+         'description', 'escalation_mode', 'escalated_at', 'closure_outcome',
+         'created_at', 'closed_at'],
+        [[i.incident_id if hasattr(i, 'incident_id') else i.id,
+          i.incident_number, i.priority, i.lifecycle_status,
+          i.owning_application, i.location, i.caller, i.callback_number,
+          i.description, i.escalation_mode, i.escalated_at, i.closure_outcome,
+          i.created_at, i.closed_at] for i in incidents])
+
+
+@core_api.route('/incidents/<int:incident_id>/chronology.csv', methods=['GET'])
+@login_required
+@permission_required(Permission.VIEW_INCIDENTS)
+def export_chronology_csv(incident_id):
+    """CSV export of one incident's full chronology (append-only audit)."""
+    incident = Incident.query.get_or_404(incident_id)
+    entries = chronology.history(incident_id, newest_first=False)
+    return _csv_response(
+        f'incident-{incident_id}-chronology.csv',
+        ['seq', 'occurred_at_utc', 'action_type', 'severity', 'summary_text',
+         'actor', 'source_application', 'entity_type', 'entity_id',
+         'correlation_id'],
+        [[e.sequence_no, e.occurred_at_utc, e.action_type, e.severity,
+          e.summary_text,
+          e.actor.username if e.actor else ('system' if e.actor_is_system else ''),
+          e.source_application, e.entity_type, e.entity_id, e.correlation_id]
+         for e in entries])

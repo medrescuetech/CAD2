@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% if map_enabled %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endif %}
 {% endblock %}
 {% block content %}
 <div class="cad-console container-fluid py-3">
@@ -29,7 +32,8 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6" id="unitsBoard">
+    <div class="col-md-6">
+    <div id="unitsBoard">
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h6 class="mb-0">Unit status</h6>
@@ -44,7 +48,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6" id="detail" style="display:none">
+    <div id="detail" style="display:none">
       <div class="card mb-2">
         <div class="card-header d-flex justify-content-between">
           <h6 class="mb-0" id="incTitle"></h6>
@@ -87,6 +91,13 @@
           </table>
         </div>
       </div>
+    </div>
+    {% if map_enabled %}
+    <div class="card mt-2">
+      <div class="card-header"><h6 class="mb-0">Map</h6></div>
+      <div id="cadMap" style="height:320px"></div>
+    </div>
+    {% endif %}
     </div>
   </div>
 </div>
@@ -184,8 +195,8 @@ async function openDetail(id) {
   const ct = document.querySelector('#chronTable tbody');
   ct.innerHTML = '';
   for (const e of (b.chronology || []).slice(-50).reverse())
-    ct.innerHTML += `<tr><td>${(e.timestamp||'').replace('T',' ').slice(0,19)}</td>
-      <td>${e.action_type}</td><td>${e.summary||''}</td></tr>`;
+    ct.innerHTML += `<tr><td>${(e.occurred_at_utc||'').replace('T',' ').slice(0,19)}</td>
+      <td>${e.action_type}</td><td>${e.summary_text||''}</td></tr>`;
 }
 
 async function assignUnit() {
@@ -208,9 +219,37 @@ async function closeInc() {
   else alert(r.message || 'Close failed');
 }
 
+{% if map_enabled %}
+let cadMap = null, markers = [];
+function initMap() {
+  cadMap = L.map('cadMap', {zoomControl: true}).setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(cadMap);
+}
+async function refreshMap() {
+  const r = await api('/incidents?open=1');
+  markers.forEach(m => m.remove());
+  markers = [];
+  const pts = [];
+  for (const i of r.incidents || []) {
+    if (i.latitude == null || i.longitude == null) continue;
+    const m = L.marker([i.latitude, i.longitude])
+      .bindTooltip(`#${i.id} ${i.location||''} (${i.lifecycle_status||''})`);
+    m.addTo(cadMap);
+    markers.push(m);
+    pts.push([i.latitude, i.longitude]);
+  }
+  if (pts.length) cadMap.fitBounds(pts, {padding: [30, 30], maxZoom: 14});
+}
+initMap(); refreshMap();
+{% endif %}
 loadUnits();
 loadQueue(); loadOpen();
 setInterval(() => { loadQueue(); loadOpen();
-  if (!inc) loadUnits(); }, 10000);
+  if (!inc) loadUnits();
+  {% if map_enabled %}refreshMap();{% endif %} }, 10000);
 </script>
+{% if map_enabled %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endif %}
 {% endblock %}
