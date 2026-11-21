@@ -118,39 +118,6 @@
             </div>
         </div>
         
-        {% if current_user.can(Permission.ADMINISTRATOR) %}
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                <i class="fas fa-cog me-2"></i>Admin
-            </a>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ url_for('admin.users') }}">
-                    <i class="fas fa-users me-2"></i>Users</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin.roles') }}">
-                    <i class="fas fa-user-shield me-2"></i>Roles</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin.locations') }}">
-                    <i class="fas fa-map-marker-alt me-2"></i>Locations</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin.unit_reports') }}">
-                    <i class="fas fa-ambulance me-2"></i>Units</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin.reports') }}">
-                    <i class="fas fa-chart-bar me-2"></i>Reports</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin.settings') }}">
-                    <i class="fas fa-wrench me-2"></i>Settings</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('admin.system_logs') }}">
-                    <i class="fas fa-list me-2"></i>System Logs</a></li>
-            </ul>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('reporting.reports') }}">
-                <i class="bi bi-file-earmark-text"></i> Reports
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('reporting.visualizations') }}">
-                <i class="bi bi-graph-up"></i> Visualizations
-            </a>
-        </li>
     {% else %}
         <p>You are not logged in.</p>
     {% endif %}

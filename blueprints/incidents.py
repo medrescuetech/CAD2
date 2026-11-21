@@ -123,7 +123,7 @@ def get_incident(incident_id):
 
 @bp.route('/incidents', methods=['POST'])
 @login_required
-@permission_required(Permission.CREATE)
+@permission_required(Permission.CREATE_INCIDENT)
 @secure_endpoint(limit="20/minute")
 def create_incident():
     """Create a new incident."""
@@ -195,7 +195,7 @@ def create_incident():
 
 @bp.route('/incidents/<int:incident_id>', methods=['PUT'])
 @login_required
-@permission_required(Permission.EDIT)
+@permission_required(Permission.EDIT_INCIDENTS)
 @secure_endpoint(limit="20/minute")
 def update_incident(incident_id):
     """Update an existing incident."""
@@ -292,7 +292,7 @@ def update_incident(incident_id):
 
 @bp.route('/incidents/<int:incident_id>/status', methods=['PUT'])
 @login_required
-@permission_required(Permission.EDIT)
+@permission_required(Permission.EDIT_INCIDENTS)
 @secure_endpoint(limit="30/minute")
 def update_incident_status(incident_id):
     """Update the status of an incident."""
@@ -404,7 +404,7 @@ def get_incident_units(incident_id):
 
 @bp.route('/incidents/<int:incident_id>/units', methods=['POST'])
 @login_required
-@permission_required(Permission.ASSIGN)
+@permission_required(Permission.ASSIGN_UNITS)
 @secure_endpoint(limit="20/minute")
 def assign_unit(incident_id):
     """Assign a unit to an incident."""
@@ -484,7 +484,7 @@ def assign_unit(incident_id):
 
 @bp.route('/incidents/<int:incident_id>/units/<int:unit_id>', methods=['DELETE'])
 @login_required
-@permission_required(Permission.ASSIGN)
+@permission_required(Permission.ASSIGN_UNITS)
 @secure_endpoint(limit="20/minute")
 def unassign_unit(incident_id, unit_id):
     """Unassign a unit from an incident."""
@@ -601,7 +601,7 @@ def add_incident_log(incident_id):
 # Incident Report Endpoints
 @bp.route('/incidents/<int:incident_id>/report', methods=['GET'])
 @login_required
-@permission_required(Permission.VIEW)
+@permission_required(Permission.VIEW_INCIDENTS)
 @secure_endpoint(limit="10/minute")
 def generate_incident_report(incident_id):
     """Generate a report for an incident."""

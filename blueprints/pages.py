@@ -180,8 +180,8 @@ def new_incident():
         flash('Incident created successfully.', 'success')
         return redirect(url_for('pages.view_incident', incident_id=incident.id))
         
-    # GET request - render the incident form
-    return current_app.custom_render_template('incidents/create.html', title='New Incident')
+    # GET request - render the incident form (incident.html doubles as the create form)
+    return current_app.custom_render_template('incident.html', title='New Incident', incident=None)
 
 @pages.route('/incidents/<int:incident_id>')
 @login_required
@@ -211,7 +211,7 @@ def view_incident(incident_id):
         return redirect(url_for('pages.view_incident', incident_id=incident_id))
     
     # GET request - render the incident form with existing data
-    return current_app.custom_render_template('incidents/view.html', title='Incident', incident=incident)
+    return current_app.custom_render_template('incident.html', title='Incident', incident=incident)
 
 @pages.route('/incidents/<int:incident_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -254,7 +254,7 @@ def edit_incident(incident_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-    return current_app.custom_render_template('incidents/edit.html', title='Edit Incident', incident=incident)
+    return redirect(url_for('pages.view_incident', incident_id=incident_id))
 
 @pages.route('/incident/<int:incident_id>/status', methods=['POST'])
 @login_required

@@ -2,6 +2,7 @@ from app import create_app
 from extensions import db
 from datetime import datetime, timedelta
 from models import User, Role, Permission, Incident, Unit, IncidentLog, UnitAssignment, PickupPoint, DailyLog, UnitType, Location, IncidentType
+from core.reference_data import insert_defaults as insert_core_reference_data
 from werkzeug.security import generate_password_hash
 import logging
 
@@ -266,6 +267,10 @@ def init_db():
             
             # Commit changes
             db.session.commit()
+
+            # Seed controlled dictionaries for the CAD ecosystem core
+            insert_core_reference_data()
+
             logging.info("Database initialized successfully with sample data")
             
         except Exception as e:

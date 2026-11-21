@@ -54,6 +54,16 @@ cp .env.example .env
 ```
 Edit `.env` as needed for your environment.
 
+`SECRET_KEY` is required when running with `FLASK_ENV=production` (the default) and
+the application refuses to start without it:
+```bash
+export SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
+```
+
+The optional desktop launcher (`main.py`) additionally needs Tk
+(`sudo apt-get install python3-tk` on Debian/Ubuntu). It is not required for
+`run.py` or the test suite.
+
 ### 4. Initialize Database
 ```bash
 python init_db.py
