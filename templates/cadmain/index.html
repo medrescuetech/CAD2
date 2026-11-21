@@ -22,6 +22,16 @@
           <div id="queueEmpty" class="p-3 text-muted small">Queue is empty.</div>
         </div>
       </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Transfers</h6></div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="xferTable">
+            <thead><tr><th>Type</th><th>From</th><th>To</th><th>State</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="xferEmpty" class="p-3 text-muted small" style="display:none">No transfers.</div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header"><h6 class="mb-0">Open incidents</h6></div>
         <div class="card-body p-0">
@@ -285,6 +295,32 @@ async function reopenInc() {
   if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
 }
 
+const meId = {{ current_user.id }};
+
+async function loadTransfers() {
+  const r = await api('/transfers');
+  const list = r.transfers || [];
+  const tb = document.querySelector('#xferTable tbody');
+  tb.innerHTML = '';
+  xferEmpty.style.display = list.length ? 'none' : '';
+  for (const t of list) {
+    const kind = t.incident_id ? 'Incident #'+t.incident_id : 'Intake #'+t.intake_id;
+    const mine = t.to_user_id === meId && t.state === 'OFFERED';
+    tb.innerHTML += `<tr><td>${kind}</td><td>${t.from_user_id}</td>
+      <td>${t.to_user_id}</td>
+      <td><span class="st st-${t.state.toLowerCase()}">${t.state}</span></td>
+      <td>${mine ? `<button class="btn btn-success btn-sm" onclick="resolveXfer(${t.id},1)">Accept</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="resolveXfer(${t.id},0)">Decline</button>` : ''}</td></tr>`;
+  }
+}
+
+async function resolveXfer(id, accept) {
+  const r = await api(`/transfers/${id}/resolve`, {method: 'POST',
+    body: JSON.stringify({accept: !!accept})});
+  if (r.success) { loadTransfers(); loadOpen(); }
+  else alert(r.message || 'Failed');
+}
+
 async function closeInc() {
   const r = await api(`/incidents/${inc.id}/close`, {method: 'POST',
     body: JSON.stringify({outcome: closeOutcome.value, closure_note: closeNote.value})});
@@ -318,8 +354,8 @@ async function refreshMap() {
 initMap(); refreshMap();
 {% endif %}
 loadUnits();
-loadQueue(); loadOpen();
-setInterval(() => { loadQueue(); loadOpen();
+loadQueue(); loadOpen(); loadTransfers();
+setInterval(() => { loadQueue(); loadOpen(); loadTransfers();
   if (!inc) loadUnits();
   {% if map_enabled %}refreshMap();{% endif %} }, 10000);
 </script>

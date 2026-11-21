@@ -790,3 +790,70 @@ def export_chronology_csv(incident_id):
           e.actor.username if e.actor else ('system' if e.actor_is_system else ''),
           e.source_application, e.entity_type, e.entity_id, e.correlation_id]
          for e in entries])
+
+
+# ---------------------------------------------------------------------------
+# Response rules and transfers (Phase 3 depth)
+# ---------------------------------------------------------------------------
+
+@core_api.route('/events/<int:event_id>/response-rules', methods=['GET'])
+@login_required
+def list_response_rules(event_id):
+    EventWorkspace.query.get_or_404(event_id)
+    from core.models import EventResponseRule
+    rules = (EventResponseRule.query
+             .filter_by(event_workspace_id=event_id)
+             .order_by(EventResponseRule.response_area).all())
+    return jsonify({'success': True,
+                    'rules': [r.to_dict() for r in rules]})
+
+
+@core_api.route('/events/<int:event_id>/response-rules', methods=['POST'])
+@login_required
+@permission_required(Permission.ADMIN)
+def create_response_rule(event_id):
+    EventWorkspace.query.get_or_404(event_id)
+    from core.models import EventResponseRule
+    data = request.get_json(silent=True) or {}
+    if not (data.get('response_area') or data.get('map_reference')):
+        return jsonify({'success': False,
+                        'message': 'response_area or map_reference is '
+                                   'required'}), 400
+    rule = EventResponseRule(
+        event_workspace_id=event_id,
+        map_reference=data.get('map_reference'),
+        response_area=data.get('response_area'),
+        primary_responder=data.get('primary_responder'),
+        secondary_responder=data.get('secondary_responder'),
+        active=True)
+    db.session.add(rule)
+    db.session.flush()
+    commit_err = _commit()
+    if commit_err:
+        return commit_err
+    return jsonify({'success': True, 'rule': rule.to_dict()}), 201
+
+
+@core_api.route('/response-rules/<int:rule_id>', methods=['DELETE'])
+@login_required
+@permission_required(Permission.ADMIN)
+def deactivate_response_rule(rule_id):
+    from core.models import EventResponseRule
+    rule = EventResponseRule.query.get_or_404(rule_id)
+    rule.active = False
+    commit_err = _commit()
+    if commit_err:
+        return commit_err
+    return jsonify({'success': True, 'rule': rule.to_dict()})
+
+
+@core_api.route('/transfers', methods=['GET'])
+@login_required
+def list_transfers():
+    """Ownership offers I made or that are waiting on me."""
+    rows = (db.session.query(OperatorAssignment)
+            .filter(db.or_(OperatorAssignment.to_user_id == current_user.id,
+                           OperatorAssignment.from_user_id == current_user.id))
+            .order_by(OperatorAssignment.id.desc()).limit(50).all())
+    return jsonify({'success': True,
+                    'transfers': [t.to_dict() for t in rows]})

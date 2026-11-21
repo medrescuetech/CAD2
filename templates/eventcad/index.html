@@ -59,6 +59,27 @@
               <div id="resolveOut" class="small mt-2"></div>
             </div>
           </div>
+          <div class="card">
+            <div class="card-header"><h6 class="mb-0">Response rules</h6></div>
+            <div class="card-body">
+              <div class="row g-1">
+                <div class="col-6"><input class="form-control form-control-sm" id="ruleArea"
+                  placeholder="Response area"></div>
+                <div class="col-6"><input class="form-control form-control-sm" id="ruleMap"
+                  placeholder="Map ref"></div>
+                <div class="col-6"><input class="form-control form-control-sm" id="rulePri"
+                  placeholder="Primary responder"></div>
+                <div class="col-6"><input class="form-control form-control-sm" id="ruleSec"
+                  placeholder="Secondary responder"></div>
+                <div class="col-12"><button class="btn btn-outline-primary btn-sm w-100"
+                  onclick="addRule()">Add rule</button></div>
+              </div>
+            </div>
+            <table class="table table-sm mb-0" id="ruleTable">
+              <thead><tr><th>Area</th><th>Map ref</th><th>Primary</th><th>Secondary</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
         <div class="col-md-7">
           <div class="card mb-2">
@@ -117,7 +138,7 @@ function selectWs(e) {
   wsDetail.style.display = '';
   wsTitle.textContent = e.code + ' — ' + e.name + (e.venue_name ? ' @ ' + e.venue_name : '');
   wsStatus.textContent = e.status;
-  loadLocations(); loadIncidents();
+  loadLocations(); loadIncidents(); loadRules();
 }
 
 async function setStatus(s) {
@@ -150,6 +171,29 @@ async function loadLocations() {
   for (const l of r.locations || [])
     tb.innerHTML += `<tr><td>${l.location_key||''}</td><td>${l.location_name||''}</td>
       <td>${l.map_reference||''}</td><td>${l.response_area||''}</td></tr>`;
+}
+
+async function loadRules() {
+  const r = await api(`/events/${ws.id}/response-rules`);
+  const tb = document.querySelector('#ruleTable tbody');
+  tb.innerHTML = '';
+  for (const ru of r.rules || [])
+    tb.innerHTML += `<tr><td>${ru.response_area||''}</td><td>${ru.map_reference||''}</td>
+      <td>${ru.primary_responder||''}</td><td>${ru.secondary_responder||''}</td>
+      <td>${ru.active ? `<button class="btn btn-outline-danger btn-sm" onclick="delRule(${ru.id})">Off</button>` : 'off'}</td></tr>`;
+}
+
+async function addRule() {
+  const r = await api(`/events/${ws.id}/response-rules`, {method: 'POST',
+    body: JSON.stringify({response_area: ruleArea.value, map_reference: ruleMap.value,
+      primary_responder: rulePri.value, secondary_responder: ruleSec.value})});
+  if (r.success) { ruleArea.value=ruleMap.value=rulePri.value=ruleSec.value=''; loadRules(); }
+  else alert(r.message || 'Failed');
+}
+
+async function delRule(id) {
+  const r = await api(`/response-rules/${id}`, {method: 'DELETE'});
+  if (r.success) loadRules(); else alert(r.message || 'Failed');
 }
 
 async function resolvePost() {
