@@ -355,6 +355,8 @@ def register_blueprints(app):
     app.register_blueprint(core_api, url_prefix='/api/core')
     from blueprints.calltaker import bp as calltaker_bp
     app.register_blueprint(calltaker_bp)
+    from blueprints.eventcad import bp as eventcad_bp
+    app.register_blueprint(eventcad_bp)
     
     # Web Interface Blueprints
     app.register_blueprint(pages, url_prefix='/')
