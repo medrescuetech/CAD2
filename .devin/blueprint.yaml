@@ -1,0 +1,21 @@
+initialize:
+  - name: create venv
+    run: python3 -m venv venv && ./venv/bin/pip install --upgrade pip
+maintenance:
+  - name: install python deps
+    run: ./venv/bin/pip install -r requirements.txt pytest
+knowledge:
+  - name: test
+    contents: |
+      SECRET_KEY=test ./venv/bin/pytest -o addopts='-q'
+      # -o addopts overrides pytest.ini, which references plugins not installed
+      # (pytest-timeout, pytest-html, etc. — test-requirements.txt has a bad pin)
+  - name: run
+    contents: |
+      # SECRET_KEY required at boot; dev server:
+      SECRET_KEY=dev ./venv/bin/python app.py
+      # fresh local DB: SECRET_KEY=dev ./venv/bin/python init_db.py
+  - name: notes
+    contents: |
+      # SQLite via db.create_all(); migrations/versions is empty — alembic unused.
+      # GitHub pushes need token in remote URL: x-access-token:$TOKEN@github.com/medrescuetech/CAD2.git
