@@ -36,6 +36,14 @@ def _commit():
     return None
 
 
+def _row_dict(row):
+    """Serialize an Incident.query.all() row: the custom IncidentQuery uses
+    with_entities, so rows are keyed tuples without to_dict."""
+    if hasattr(row, 'to_dict'):
+        return row.to_dict()
+    return dict(row._mapping)
+
+
 # ---------------------------------------------------------------------------
 # Event workspaces and location packs
 # ---------------------------------------------------------------------------
@@ -647,7 +655,7 @@ def list_incidents():
     limit = min(int(request.args.get('limit', 50)), 200)
     incidents = query.order_by(Incident.created_at.desc()).limit(limit).all()
     return jsonify({'success': True,
-                    'incidents': [i.to_dict() for i in incidents],
+                    'incidents': [_row_dict(i) for i in incidents],
                     'count': len(incidents)})
 
 
@@ -668,7 +676,7 @@ def search_incidents():
                Incident.description.like(like)))
         .order_by(Incident.created_at.desc()).limit(50).all())
     return jsonify({'success': True,
-                    'incidents': [i.to_dict() for i in incidents]})
+                    'incidents': [_row_dict(i) for i in incidents]})
 
 
 @core_api.route('/queue', methods=['GET'])
@@ -688,9 +696,9 @@ def dispatch_queue():
         Incident.lifecycle_status.notin_(
             ('CLOSED', 'CANCELLED', 'DUPLICATE_CANCELLED'))).all()
     return jsonify({'success': True,
-                    'unassigned': [i.to_dict() for i in unassigned],
-                    'in_flight': [i.to_dict() for i in inflight],
-                    'urgent': [i.to_dict() for i in urgent]})
+                    'unassigned': [_row_dict(i) for i in unassigned],
+                    'in_flight': [_row_dict(i) for i in inflight],
+                    'urgent': [_row_dict(i) for i in urgent]})
 
 
 @core_api.route('/incidents/<int:incident_id>/export', methods=['GET'])

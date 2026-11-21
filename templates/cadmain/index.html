@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-2">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Dispatch queue</h6>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadQueue()">Refresh</button>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="queueTable">
+            <thead><tr><th>#</th><th>Priority</th><th>Location</th><th>Status</th><th>Urgent</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="queueEmpty" class="p-3 text-muted small">Queue is empty.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Open incidents</h6></div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="openTable">
+            <thead><tr><th>#</th><th>Owner</th><th>Location</th><th>Lifecycle</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="detail" style="display:none">
+      <div class="card mb-2">
+        <div class="card-header d-flex justify-content-between">
+          <h6 class="mb-0" id="incTitle"></h6>
+          <span class="badge bg-secondary" id="incStatus"></span>
+        </div>
+        <div class="card-body small" id="incMeta"></div>
+      </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Responses / units</h6></div>
+        <table class="table table-sm mb-0" id="respTable">
+          <thead><tr><th>Unit</th><th>Role</th><th>Status</th><th>Advance</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="card-body">
+          <div class="input-group input-group-sm">
+            <select class="form-select" id="unitSelect"></select>
+            <select class="form-select" id="roleSelect">
+              <option value="primary">primary</option><option value="backup">backup</option>
+            </select>
+            <button class="btn btn-primary" onclick="assignUnit()">Assign</button>
+          </div>
+        </div>
+      </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Close incident</h6></div>
+        <div class="card-body">
+          <div class="input-group input-group-sm">
+            <input class="form-control" id="closeOutcome" placeholder="Outcome (required)">
+            <input class="form-control" id="closeNote" placeholder="Closure note">
+            <button class="btn btn-danger" onclick="closeInc()">Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Chronology</h6></div>
+        <div class="card-body p-0" style="max-height:300px;overflow:auto">
+          <table class="table table-sm mb-0" id="chronTable">
+            <thead><tr><th>Time</th><th>Action</th><th>Summary</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const api = (p, o={}) => fetch('/api/core' + p, {
+  headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf,
+            ...(o.headers||{})}, ...o}).then(r => r.json());
+const adminApi = p => fetch('/admin/api' + p,
+  {headers: {'X-CSRF-Token': csrf}}).then(r => r.json());
+let inc = null, units = [];
+
+const NEXT = {ASSIGNED:['DISPATCHED','ACKNOWLEDGED','CANCELLED','DEALLOCATED'],
+  DISPATCHED:['ACKNOWLEDGED','EN_ROUTE','CANCELLED','DEALLOCATED'],
+  ACKNOWLEDGED:['EN_ROUTE','CANCELLED','DEALLOCATED'],
+  EN_ROUTE:['ARRIVED_SCENE','CANCELLED','DEALLOCATED'],
+  ARRIVED_SCENE:['DEPARTED_SCENE','CLEAR','DEALLOCATED'],
+  DEPARTED_SCENE:['ARRIVED_DESTINATION','CLEAR'],
+  ARRIVED_DESTINATION:['CLEAR']};
+
+async function loadUnits() {
+  const r = await adminApi('/units');
+  units = (r.units || []).filter(u => u.status === 'available' || u.status === 'AVAILABLE' || !u.status);
+  unitSelect.innerHTML = units.map(u => `<option value="${u.id}">${u.name||u.callsign||'unit-'+u.id}</option>`).join('');
+}
+
+async function loadQueue() {
+  const r = await api('/queue');
+  const q = (r.queue && r.queue.unassigned) || r.unassigned || [];
+  const tb = document.querySelector('#queueTable tbody');
+  tb.innerHTML = '';
+  queueEmpty.style.display = q.length ? 'none' : '';
+  for (const i of q)
+    tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
+      <td>${i.id}</td><td>${i.priority||''}</td><td>${i.location||''}</td>
+      <td>${i.lifecycle_status||''}</td><td>${i.urgent_update?'⚠️':''}</td></tr>`;
+  const inflight = (r.queue && r.queue.in_flight) || [];
+  for (const i of inflight)
+    tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
+      <td>${i.id}</td><td>${i.priority||''}</td><td>${i.location||''}</td>
+      <td>${i.lifecycle_status||''}</td><td>${i.urgent_update?'⚠️':''}</td></tr>`;
+  bindRows();
+}
+
+async function loadOpen() {
+  const r = await api('/incidents?open=1');
+  const tb = document.querySelector('#openTable tbody');
+  tb.innerHTML = '';
+  for (const i of r.incidents || [])
+    tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
+      <td>${i.id}</td><td>${i.owning_application||''}</td><td>${i.location||''}</td>
+      <td>${i.lifecycle_status||''}</td>
+      <td>${i.escalated_at ? 'esc' : ''}</td></tr>`;
+  bindRows();
+}
+
+function bindRows() {
+  document.querySelectorAll('.inc-row').forEach(tr =>
+    tr.onclick = () => openDetail(tr.dataset.id));
+}
+
+async function openDetail(id) {
+  const r = await api(`/incidents/${id}/export`);
+  const b = r.bundle || r;
+  inc = b.incident || b;
+  detail.style.display = '';
+  incTitle.textContent = `#${inc.id} ${inc.incident_number||''} — ${inc.location||''}`;
+  incStatus.textContent = inc.lifecycle_status || inc.status;
+  incMeta.innerHTML = `Owner: ${inc.owning_application||'—'} · Priority: ${inc.priority||'—'} ·
+    Caller: ${inc.caller||'—'} ${inc.callback_number||''}<br>${inc.description||''}`;
+
+  const resps = b.responses || [];
+  const tb = document.querySelector('#respTable tbody');
+  tb.innerHTML = '';
+  for (const resp of resps) {
+    const nexts = (NEXT[resp.status] || []);
+    tb.innerHTML += `<tr><td>${resp.unit_callsign||'unit-'+resp.unit_id}</td>
+      <td>${resp.response_role||''}</td><td>${resp.status}</td>
+      <td>${nexts.map(n => `<button class="btn btn-outline-primary btn-sm me-1"
+        onclick="advance(${resp.id},'${n}')">${n}</button>`).join('')}</td></tr>`;
+  }
+
+  const ct = document.querySelector('#chronTable tbody');
+  ct.innerHTML = '';
+  for (const e of (b.chronology || []).slice(-50).reverse())
+    ct.innerHTML += `<tr><td>${(e.timestamp||'').replace('T',' ').slice(0,19)}</td>
+      <td>${e.action_type}</td><td>${e.summary||''}</td></tr>`;
+}
+
+async function assignUnit() {
+  const r = await api(`/incidents/${inc.id}/responses`, {method: 'POST',
+    body: JSON.stringify({unit_id: parseInt(unitSelect.value), role: roleSelect.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Assign failed');
+}
+
+async function advance(respId, status) {
+  const r = await api(`/responses/${respId}/status`, {method: 'POST',
+    body: JSON.stringify({status})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function closeInc() {
+  const r = await api(`/incidents/${inc.id}/close`, {method: 'POST',
+    body: JSON.stringify({outcome: closeOutcome.value, closure_note: closeNote.value})});
+  if (r.success) { detail.style.display='none'; loadQueue(); loadOpen(); }
+  else alert(r.message || 'Close failed');
+}
+
+loadUnits();
+loadQueue(); loadOpen();
+setInterval(() => { loadQueue(); loadOpen(); }, 10000);
+</script>
+{% endblock %}

@@ -287,3 +287,34 @@ def test_intake_duplicate_suggestion(app, client):
     from core.models import ChronologyEntry
     assert ChronologyEntry.query.filter_by(
         incident_id=incident_id, action_type='duplicate_suggested').count() == 0
+
+
+def test_dispatch_queue_and_list_endpoints(app, client):
+    """GET /queue, /incidents, /export: serialization of IncidentQuery rows."""
+    login(client, 'admin', 'admin')
+    r = client.post('/api/core/intakes', json={
+        'source': 'telephone', 'location_text': '77 Queue Blvd'})
+    intake_id = r.get_json()['intake']['id']
+    r = client.post(f'/api/core/intakes/{intake_id}/route',
+                    json={'target': 'MAIN'})
+    incident_id = r.get_json()['incident']['id']
+
+    r = client.get('/api/core/incidents?open=1')
+    assert r.status_code == 200
+    assert any(i['id'] == incident_id for i in r.get_json()['incidents'])
+
+    r = client.get('/api/core/queue')
+    assert r.status_code == 200
+    body = r.get_json()
+    assert any(i['id'] == incident_id for i in body['unassigned'])
+
+    r = client.get('/api/core/incidents/search?q=Queue')
+    assert r.status_code == 200
+    assert any(i['id'] == incident_id for i in r.get_json()['incidents'])
+
+    r = client.get(f'/api/core/incidents/{incident_id}/export')
+    assert r.status_code == 200
+    bundle = r.get_json()['bundle']
+    assert bundle['incident']['id'] == incident_id
+    assert isinstance(bundle['chronology'], list)
+    assert isinstance(bundle['responses'], list)
