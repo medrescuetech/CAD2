@@ -146,7 +146,7 @@ async function openDetail(id) {
   tb.innerHTML = '';
   for (const resp of resps) {
     const nexts = (NEXT[resp.status] || []);
-    tb.innerHTML += `<tr><td>${resp.unit_callsign||'unit-'+resp.unit_id}</td>
+    tb.innerHTML += `<tr><td>${resp.unit_name||'unit-'+resp.unit_id}</td>
       <td>${resp.response_role||''}</td><td>${resp.status}</td>
       <td>${nexts.map(n => `<button class="btn btn-outline-primary btn-sm me-1"
         onclick="advance(${resp.id},'${n}')">${n}</button>`).join('')}</td></tr>`;
@@ -166,7 +166,7 @@ async function assignUnit() {
 }
 
 async function advance(respId, status) {
-  const r = await api(`/responses/${respId}/status`, {method: 'POST',
+  const r = await api(`/responses/${respId}/status`, {method: 'PATCH',
     body: JSON.stringify({status})});
   if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
 }

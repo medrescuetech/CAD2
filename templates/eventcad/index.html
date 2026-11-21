@@ -39,7 +39,7 @@
             <div class="card-header"><h6 class="mb-0">Import location pack (CSV)</h6></div>
             <div class="card-body">
               <textarea class="form-control form-control-sm" id="packCsv" rows="5"
-                placeholder="location_key,name,map_reference,response_area&#10;GATE-N,North Gate,GRID-A1,RA-1"></textarea>
+                placeholder="location_key,location_name,map_reference,response_area&#10;GATE-N,North Gate,GRID-A1,RA-1"></textarea>
               <button class="btn btn-primary btn-sm mt-2" onclick="importPack()">Stage</button>
               <div id="packPreview" class="small mt-2"></div>
             </div>
@@ -66,7 +66,10 @@
             </table>
           </div>
           <div class="card">
-            <div class="card-header"><h6 class="mb-0">Incidents in workspace</h6></div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h6 class="mb-0">Incidents in workspace</h6>
+              <span id="wsMsg" class="small"></span>
+            </div>
             <table class="table table-sm mb-0" id="incTable">
               <thead><tr><th>#</th><th>Location</th><th>Status</th><th>Priority</th><th></th></tr></thead>
               <tbody></tbody>
@@ -126,7 +129,7 @@ async function importPack() {
                       {method: 'POST', body: JSON.stringify({csv: packCsv.value})});
   if (!r.success) { packPreview.textContent = r.message || 'Failed'; return; }
   const p = r.preview;
-  packPreview.innerHTML = `Staged pack #${r.pack.id}: ${p.inserted} rows` +
+  packPreview.innerHTML = `Staged pack #${r.pack.id}: ${p.create} locations, ${p.rejected} rejected` +
     (p.errors && p.errors.length ? ` — errors: ${p.errors.join('; ')}` : '') +
     ` <button class="btn btn-success btn-sm" onclick="activatePack(${r.pack.id})">Activate</button>`;
 }
@@ -142,7 +145,7 @@ async function loadLocations() {
   const tb = document.querySelector('#locTable tbody');
   tb.innerHTML = '';
   for (const l of r.locations || [])
-    tb.innerHTML += `<tr><td>${l.location_key||''}</td><td>${l.name||''}</td>
+    tb.innerHTML += `<tr><td>${l.location_key||''}</td><td>${l.location_name||''}</td>
       <td>${l.map_reference||''}</td><td>${l.response_area||''}</td></tr>`;
 }
 
@@ -176,7 +179,12 @@ async function escalate(id) {
   const mode = document.getElementById('esc-' + id).value;
   const r = await api(`/incidents/${id}/escalate`,
                       {method: 'POST', body: JSON.stringify({mode})});
-  if (r.success) loadIncidents();
+  if (r.success) {
+    document.getElementById('wsMsg').textContent =
+      `Incident #${id} escalated (${mode})`;
+    document.getElementById('wsMsg').className = 'small text-success';
+    loadIncidents();
+  }
   else alert(r.message || 'Failed');
 }
 
