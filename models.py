@@ -547,7 +547,21 @@ class IncidentQuery(db.Query):
             Incident.created_at,
             Incident.updated_at,
             Incident.created_by_id,
-            Incident.updated_by_id
+            Incident.updated_by_id,
+            # Ecosystem columns added for the shared core (PR #2)
+            Incident.incident_uuid,
+            Incident.owning_application,
+            Incident.event_workspace_id,
+            Incident.event_location_id,
+            Incident.lifecycle_status,
+            Incident.escalation_mode,
+            Incident.escalated_at,
+            Incident.responsible_user_id,
+            Incident.row_version,
+            Incident.closed_at,
+            Incident.closed_by_id,
+            Incident.closure_outcome,
+            Incident.urgent_update,
         )
         # Call the base implementation of all() directly from SQLAlchemy's Query class
         return db.Query.all(query)

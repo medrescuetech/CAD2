@@ -171,7 +171,7 @@ def list_intakes():
         query = query.filter_by(state=state)
     return jsonify({'success': True,
                     'intakes': [i.to_dict() for i in
-                                query.order_by(Intake.received_at.desc())
+                                query.order_by(Intake.created_at.desc())
                                 .limit(200).all()]})
 
 
@@ -614,3 +614,98 @@ def pcr_reconcile():
         return jsonify({'success': True, **pcr.reconcile()})
     except Exception as exc:
         return jsonify({'success': False, 'message': str(exc)}), 502
+
+
+# ---------------------------------------------------------------------------
+# Queues, search and export (Phase 1 main-MVP surface)
+# ---------------------------------------------------------------------------
+
+@core_api.route('/incidents', methods=['GET'])
+@login_required
+@permission_required(Permission.VIEW_INCIDENTS)
+def list_incidents():
+    """Incident queue with filters.
+
+    Query params: lifecycle_status, owning_application, event_workspace_id,
+    priority, open (1 => not closed/cancelled), limit (default 50, max 200).
+    """
+    query = Incident.query
+    if request.args.get('open') == '1':
+        query = query.filter(Incident.lifecycle_status.notin_(
+            ('CLOSED', 'CANCELLED', 'DUPLICATE_CANCELLED')))
+    for arg, col in (('lifecycle_status', Incident.lifecycle_status),
+                     ('owning_application', Incident.owning_application),
+                     ('event_workspace_id', Incident.event_workspace_id),
+                     ('priority', Incident.priority)):
+        value = request.args.get(arg)
+        if value:
+            query = query.filter(col == value)
+    limit = min(int(request.args.get('limit', 50)), 200)
+    incidents = query.order_by(Incident.created_at.desc()).limit(limit).all()
+    return jsonify({'success': True,
+                    'incidents': [i.to_dict() for i in incidents],
+                    'count': len(incidents)})
+
+
+@core_api.route('/incidents/search', methods=['GET'])
+@login_required
+@permission_required(Permission.VIEW_INCIDENTS)
+def search_incidents():
+    """Free-text search over number, location, caller, description."""
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({'success': False,
+                        'message': 'q must be at least 2 characters'}), 400
+    like = f'%{q}%'
+    incidents = (Incident.query.filter(
+        db.or_(Incident.incident_number.like(like),
+               Incident.location.like(like),
+               Incident.caller.like(like),
+               Incident.description.like(like)))
+        .order_by(Incident.created_at.desc()).limit(50).all())
+    return jsonify({'success': True,
+                    'incidents': [i.to_dict() for i in incidents]})
+
+
+@core_api.route('/queue', methods=['GET'])
+@login_required
+@permission_required(Permission.VIEW_INCIDENTS)
+def dispatch_queue():
+    """Dispatcher's queue summary: unassigned + in-flight per workspace."""
+    unassigned = (Incident.query
+                  .filter(Incident.lifecycle_status.in_(('NEW', 'PENDING')))
+                  .order_by(Incident.priority.desc(),
+                            Incident.created_at.asc()).all())
+    inflight = (Incident.query
+                .filter(Incident.lifecycle_status.in_(
+                    ('ASSIGNED', 'DISPATCHED', 'EN_ROUTE', 'ON_SCENE')))
+                .order_by(Incident.created_at.asc()).all())
+    urgent = Incident.query.filter_by(urgent_update=True).filter(
+        Incident.lifecycle_status.notin_(
+            ('CLOSED', 'CANCELLED', 'DUPLICATE_CANCELLED'))).all()
+    return jsonify({'success': True,
+                    'unassigned': [i.to_dict() for i in unassigned],
+                    'in_flight': [i.to_dict() for i in inflight],
+                    'urgent': [i.to_dict() for i in urgent]})
+
+
+@core_api.route('/incidents/<int:incident_id>/export', methods=['GET'])
+@login_required
+@permission_required(Permission.VIEW_INCIDENTS)
+def export_incident(incident_id):
+    """Full incident bundle: record, chronology, responses, intake, messages."""
+    incident = Incident.query.get_or_404(incident_id)
+    from core.models import Response, UrgentMessage
+    bundle = {
+        'incident': incident.to_dict(),
+        'chronology': [e.to_dict() for e in
+                       chronology.history(incident_id, newest_first=False)],
+        'responses': [r.to_dict() for r in
+                      Response.query.filter_by(incident_id=incident_id).all()],
+        'intakes': [i.to_dict() for i in
+                    Intake.query.filter_by(incident_id=incident_id).all()],
+        'urgent_messages': [u.to_dict() for u in
+                            UrgentMessage.query.filter_by(
+                                incident_id=incident_id).all()],
+    }
+    return jsonify({'success': True, 'bundle': bundle})

@@ -353,6 +353,8 @@ def register_blueprints(app):
     # so the frontend's /api/incidents* calls resolve
     app.register_blueprint(incidents_bp, url_prefix='/api')
     app.register_blueprint(core_api, url_prefix='/api/core')
+    from blueprints.calltaker import bp as calltaker_bp
+    app.register_blueprint(calltaker_bp)
     
     # Web Interface Blueprints
     app.register_blueprint(pages, url_prefix='/')
