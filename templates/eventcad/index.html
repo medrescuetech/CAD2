@@ -1,6 +1,9 @@
 {% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% endblock %}
 {% block content %}
-<div class="container-fluid py-3">
+<div class="cad-console container-fluid py-3">
   <div class="row">
     <div class="col-md-3">
       <div class="card mb-2">
@@ -96,7 +99,7 @@ async function loadWs() {
     const li = document.createElement('li');
     li.className = 'list-group-item list-group-item-action';
     li.innerHTML = `<b>${e.code}</b> ${e.name}
-      <span class="badge bg-${e.status==='ACTIVE'?'success':'secondary'} float-end">${e.status}</span>`;
+      <span class="st st-${(e.status||'').toLowerCase()} float-end">${e.status}</span>`;
     li.onclick = () => selectWs(e);
     ul.appendChild(li);
   }
@@ -166,7 +169,8 @@ async function loadIncidents() {
   tb.innerHTML = '';
   for (const i of r.incidents || [])
     tb.innerHTML += `<tr><td>${i.id}</td><td>${i.location||''}</td>
-      <td>${i.lifecycle_status||i.status}</td><td>${i.priority}</td>
+      <td><span class="st st-${(i.lifecycle_status||i.status||'').toLowerCase()}">${i.lifecycle_status||i.status}</span></td>
+      <td class="pri-${String(i.priority).toLowerCase()}">${i.priority}</td>
       <td><select class="form-select form-select-sm d-inline w-auto" id="esc-${i.id}">
         <option value="MAIN_LEAD">Main lead</option>
         <option value="FULL_TRANSFER">Full transfer</option>

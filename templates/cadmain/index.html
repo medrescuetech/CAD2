@@ -1,6 +1,9 @@
 {% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% endblock %}
 {% block content %}
-<div class="container-fluid py-3">
+<div class="cad-console container-fluid py-3">
   <div class="row">
     <div class="col-md-6">
       <div class="card mb-2">
@@ -102,15 +105,14 @@ async function loadQueue() {
   const tb = document.querySelector('#queueTable tbody');
   tb.innerHTML = '';
   queueEmpty.style.display = q.length ? 'none' : '';
-  for (const i of q)
-    tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
-      <td>${i.id}</td><td>${i.priority||''}</td><td>${i.location||''}</td>
-      <td>${i.lifecycle_status||''}</td><td>${i.urgent_update?'⚠️':''}</td></tr>`;
-  const inflight = (r.queue && r.queue.in_flight) || [];
-  for (const i of inflight)
-    tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
-      <td>${i.id}</td><td>${i.priority||''}</td><td>${i.location||''}</td>
-      <td>${i.lifecycle_status||''}</td><td>${i.urgent_update?'⚠️':''}</td></tr>`;
+  const row = i => `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
+      <td>${i.id}</td><td class="pri-${String(i.priority||'').toLowerCase()}">${i.priority||''}</td>
+      <td>${i.location||''}</td>
+      <td><span class="st st-${(i.lifecycle_status||'').toLowerCase()}">${i.lifecycle_status||''}</span></td>
+      <td>${i.urgent_update?'<span class="st st-urgent">URG</span>':''}</td></tr>`;
+  for (const i of q) tb.innerHTML += row(i);
+  const inflight = r.in_flight || (r.queue && r.queue.in_flight) || [];
+  for (const i of inflight) tb.innerHTML += row(i);
   bindRows();
 }
 
@@ -121,8 +123,8 @@ async function loadOpen() {
   for (const i of r.incidents || [])
     tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
       <td>${i.id}</td><td>${i.owning_application||''}</td><td>${i.location||''}</td>
-      <td>${i.lifecycle_status||''}</td>
-      <td>${i.escalated_at ? 'esc' : ''}</td></tr>`;
+      <td><span class="st st-${(i.lifecycle_status||'').toLowerCase()}">${i.lifecycle_status||''}</span></td>
+      <td>${i.escalated_at ? '<span class="st st-assigned">ESC</span>' : ''}</td></tr>`;
   bindRows();
 }
 
@@ -136,8 +138,10 @@ async function openDetail(id) {
   const b = r.bundle || r;
   inc = b.incident || b;
   detail.style.display = '';
+  document.querySelectorAll('.inc-row').forEach(t =>
+    t.classList.toggle('selected', t.dataset.id == id));
   incTitle.textContent = `#${inc.id} ${inc.incident_number||''} — ${inc.location||''}`;
-  incStatus.textContent = inc.lifecycle_status || inc.status;
+  incStatus.innerHTML = `<span class="st st-${(inc.lifecycle_status||inc.status||'').toLowerCase()}">${inc.lifecycle_status||inc.status}</span>`;
   incMeta.innerHTML = `Owner: ${inc.owning_application||'—'} · Priority: ${inc.priority||'—'} ·
     Caller: ${inc.caller||'—'} ${inc.callback_number||''}<br>${inc.description||''}`;
 
@@ -147,7 +151,8 @@ async function openDetail(id) {
   for (const resp of resps) {
     const nexts = (NEXT[resp.status] || []);
     tb.innerHTML += `<tr><td>${resp.unit_name||'unit-'+resp.unit_id}</td>
-      <td>${resp.response_role||''}</td><td>${resp.status}</td>
+      <td>${resp.response_role||''}</td>
+      <td><span class="st st-${(resp.status||'').toLowerCase()}">${resp.status}</span></td>
       <td>${nexts.map(n => `<button class="btn btn-outline-primary btn-sm me-1"
         onclick="advance(${resp.id},'${n}')">${n}</button>`).join('')}</td></tr>`;
   }

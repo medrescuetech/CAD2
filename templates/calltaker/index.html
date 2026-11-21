@@ -1,6 +1,9 @@
 {% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% endblock %}
 {% block content %}
-<div class="container-fluid py-3">
+<div class="cad-console container-fluid py-3">
   <div class="row">
     <div class="col-md-5">
       <div class="card">
@@ -70,7 +73,7 @@
         <div class="card-body p-0">
           <table class="table table-sm table-hover mb-0" id="intakeTable">
             <thead><tr>
-              <th>#</th><th>Source</th><th>Caller</th><th>Location</th>
+              <th>#</th><th>Source</th><th>Pri</th><th>Caller</th><th>Location</th>
               <th>Problem</th><th>Route to</th><th></th>
             </tr></thead>
             <tbody></tbody>
@@ -107,7 +110,8 @@ async function loadIntakes() {
       .join('');
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${i.id}</td><td>${i.source||''}</td>
-      <td>${i.caller_name||''}<br><small>${i.callback_number||''}</small></td>
+      <td>${i.priority_code ? `<span class="st pri-${i.priority_code.toLowerCase()}">${i.priority_code}</span>` : ''}</td>
+      <td>${i.caller_name||''}<br><small class="text-muted">${i.callback_number||''}</small></td>
       <td>${i.location_text||''}</td><td>${(i.problem_text||'').slice(0,60)}</td>
       <td><select class="form-select form-select-sm" id="tgt-${i.id}">${opts}</select></td>
       <td><button class="btn btn-success btn-sm" onclick="route(${i.id})">Route</button>
