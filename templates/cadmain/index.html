@@ -82,6 +82,43 @@
           </div>
         </div>
       </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Actions</h6></div>
+        <div class="card-body">
+          <div class="row g-1 align-items-center mb-1">
+            <div class="col-9"><input class="form-control form-control-sm" id="urgentMsg"
+              placeholder="Urgent message"></div>
+            <div class="col-3"><button class="btn btn-warning btn-sm w-100"
+              onclick="postUrgent()">Flag urgent</button></div>
+            <div class="col-3"><input class="form-control form-control-sm" id="xferTo"
+              placeholder="User id"></div>
+            <div class="col-6"><input class="form-control form-control-sm" id="xferNote"
+              placeholder="Handover note"></div>
+            <div class="col-3"><button class="btn btn-outline-primary btn-sm w-100"
+              onclick="offerTransfer()">Transfer</button></div>
+            <div class="col-3"><input class="form-control form-control-sm" id="linkId"
+              placeholder="Incident id"></div>
+            <div class="col-5"><select class="form-select form-select-sm" id="linkRel">
+              <option value="related">related</option><option value="same_event">same_event</option>
+              <option value="secondary">secondary</option><option value="duplicate">duplicate</option>
+              <option value="dependent">dependent</option></select></div>
+            <div class="col-4"><button class="btn btn-outline-secondary btn-sm w-100"
+              onclick="linkInc()">Link</button></div>
+            <div class="col-8"><input class="form-control form-control-sm" id="dupSurvivor"
+              placeholder="Surviving incident id (cancel this as duplicate)"></div>
+            <div class="col-4"><button class="btn btn-outline-danger btn-sm w-100"
+              onclick="cancelDup()">Cancel dup</button></div>
+            <div class="col-8"><input class="form-control form-control-sm" id="reopenReason"
+              placeholder="Reopen reason"></div>
+            <div class="col-4"><button class="btn btn-outline-success btn-sm w-100"
+              onclick="reopenInc()">Reopen</button></div>
+            <div class="col-12 mt-1">
+              <a class="btn btn-outline-secondary btn-sm" id="exportJson">Export JSON</a>
+              <a class="btn btn-outline-secondary btn-sm" id="exportCsv">Chronology CSV</a>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header"><h6 class="mb-0">Chronology</h6></div>
         <div class="card-body p-0" style="max-height:300px;overflow:auto">
@@ -177,6 +214,8 @@ async function openDetail(id) {
     t.classList.toggle('selected', t.dataset.id == id));
   incTitle.textContent = `#${inc.id} ${inc.incident_number||''} — ${inc.location||''}`;
   incStatus.innerHTML = `<span class="st st-${(inc.lifecycle_status||inc.status||'').toLowerCase()}">${inc.lifecycle_status||inc.status}</span>`;
+  exportJson.href = `/api/core/incidents/${inc.id}/export`;
+  exportCsv.href = `/api/core/incidents/${inc.id}/chronology.csv`;
   incMeta.innerHTML = `Owner: ${inc.owning_application||'—'} · Priority: ${inc.priority||'—'} ·
     Caller: ${inc.caller||'—'} ${inc.callback_number||''}<br>${inc.description||''}`;
 
@@ -208,6 +247,41 @@ async function assignUnit() {
 async function advance(respId, status) {
   const r = await api(`/responses/${respId}/status`, {method: 'PATCH',
     body: JSON.stringify({status})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function postUrgent() {
+  const r = await api(`/incidents/${inc.id}/urgent-messages`, {method: 'POST',
+    body: JSON.stringify({message: urgentMsg.value})});
+  if (r.success) { urgentMsg.value=''; openDetail(inc.id); }
+  else alert(r.message || 'Failed');
+}
+
+async function offerTransfer() {
+  const r = await api(`/incidents/${inc.id}/transfer`, {method: 'POST',
+    body: JSON.stringify({to_user_id: parseInt(xferTo.value),
+                          handover_note: xferNote.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function linkInc() {
+  const r = await api(`/incidents/${inc.id}/link`, {method: 'POST',
+    body: JSON.stringify({related_incident_id: parseInt(linkId.value),
+                          relationship: linkRel.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function cancelDup() {
+  const r = await api(`/incidents/${inc.id}/cancel-duplicate`, {method: 'POST',
+    body: JSON.stringify({surviving_incident_id: parseInt(dupSurvivor.value)})});
+  if (r.success) { detail.style.display='none'; unitsBoard.style.display='';
+                   loadQueue(); loadOpen(); }
+  else alert(r.message || 'Failed');
+}
+
+async function reopenInc() {
+  const r = await api(`/incidents/${inc.id}/reopen`, {method: 'POST',
+    body: JSON.stringify({reason: reopenReason.value})});
   if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
 }
 

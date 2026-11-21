@@ -359,6 +359,8 @@ def register_blueprints(app):
     app.register_blueprint(eventcad_bp)
     from blueprints.cadmain import bp as cadmain_bp
     app.register_blueprint(cadmain_bp)
+    from blueprints.cadreports import bp as cadreports_bp
+    app.register_blueprint(cadreports_bp)
     
     # Web Interface Blueprints
     app.register_blueprint(pages, url_prefix='/')
