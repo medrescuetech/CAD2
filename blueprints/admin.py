@@ -11,6 +11,7 @@ import io
 import csv
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from utils.csv_handler import CSVHandler
 
 # Create the admin blueprint
 admin = Blueprint('admin', __name__, url_prefix='/admin')
@@ -2197,57 +2198,15 @@ def import_units():
         return redirect(url_for('admin.manage_units'))
     
     try:
-        # Process CSV file
-        import csv
-        from io import StringIO
-        
-        # Read the file
-        csv_data = file.read().decode('utf-8')
-        csv_file = StringIO(csv_data)
-        reader = csv.DictReader(csv_file)
-        
-        units_added = 0
-        errors = []
-        
-        for row in reader:
-            try:
-                # Check required fields
-                if not row.get('unit_id') or not row.get('type'):
-                    errors.append(f"Row missing required fields: {row}")
-                    continue
-                
-                # Check if unit already exists
-                existing_unit = Unit.query.filter_by(unit_number=row['unit_id']).first()
-                if existing_unit:
-                    errors.append(f"Unit with ID {row['unit_id']} already exists")
-                    continue
-                
-                # Create new unit
-                unit = Unit(
-                    unit_number=row['unit_id'],
-                    type=row['type'],
-                    station=row.get('location', ''),
-                    capacity=row.get('capacity', 0),
-                    status='Available' if row.get('active', 'true').lower() == 'true' else 'Out of Service'
-                )
-                
-                db.session.add(unit)
-                units_added += 1
-                
-            except Exception as e:
-                errors.append(f"Error processing row {row}: {str(e)}")
-        
-        db.session.commit()
-        
-        if errors:
-            flash(f"Imported {units_added} units with {len(errors)} errors. See logs for details.", 'warning')
-            for error in errors:
-                current_app.logger.error(f"Import error: {error}")
+        result = CSVHandler.import_units(StringIO(file.read().decode('utf-8')))
+        if 'error' in result:
+            flash(f"Error importing units: {result['error']}", 'danger')
         else:
-            flash(f"Successfully imported {units_added} units", 'success')
-        
+            flash(f"Imported {result['added']} units, updated {result['updated']}.", 'success')
+            for error in result.get('errors', []):
+                current_app.logger.warning(f"Unit import error: {error}")
         return redirect(url_for('admin.manage_units'))
-        
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error importing units: {str(e)}")
@@ -2263,34 +2222,11 @@ def export_units():
         import csv
         from io import StringIO
         
-        # Create CSV file
-        output = StringIO()
-        writer = csv.writer(output)
-        
-        # Write header
-        writer.writerow(['unit_id', 'type', 'location', 'capacity', 'active'])
-        
-        # Get all units
-        units = Unit.query.all()
-        
-        # Write unit data
-        for unit in units:
-            writer.writerow([
-                unit.unit_number,
-                unit.type,
-                unit.station or '',
-                unit.capacity or '',
-                'true' if unit.status != 'Out of Service' else 'false'
-            ])
-        
-        # Create response
-        output.seek(0)
-        return current_app.response_class(
-            output.getvalue(),
-            mimetype='text/csv',
-            headers={'Content-Disposition': 'attachment; filename=units.csv'}
-        )
-        
+        response = make_response(CSVHandler.export_units())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = 'attachment; filename=units.csv'
+        return response
+
     except Exception as e:
         current_app.logger.error(f"Error exporting units: {str(e)}")
         flash(f"Error exporting units: {str(e)}", 'danger')
@@ -2442,63 +2378,16 @@ def import_users():
         if not file.filename.endswith('.csv'):
             return jsonify({'error': 'File must be a CSV file'}), 400
         
-        # Read the CSV file
-        csv_data = file.read().decode('utf-8').splitlines()
-        csv_reader = csv.DictReader(csv_data)
-        
-        if not csv_reader.fieldnames:
-            return jsonify({'error': 'CSV file is empty or invalid'}), 400
-        
-        required_fields = ['username', 'email', 'password']
-        for field in required_fields:
-            if field not in csv_reader.fieldnames:
-                return jsonify({'error': f"Required field '{field}' is missing in CSV file"}), 400
-        
-        # Process each row
-        created_users = []
-        errors = []
-        for row_num, row in enumerate(csv_reader, start=2):  # Start from 2 to account for header row
-            try:
-                # Check if user already exists
-                existing_user = User.query.filter_by(username=row['username']).first()
-                if existing_user:
-                    errors.append(f"Row {row_num}: Username '{row['username']}' already exists")
-                    continue
-                
-                # Check if email already exists
-                existing_email = User.query.filter_by(email=row['email']).first()
-                if existing_email:
-                    errors.append(f"Row {row_num}: Email '{row['email']}' already registered")
-                    continue
-                
-                # Create new user
-                user = User(
-                    username=row['username'],
-                    email=row['email'],
-                    active=row.get('active', 'true').lower() == 'true'
-                )
-                user.set_password(row['password'])
-                
-                # Set role if provided
-                if 'role' in row and row['role']:
-                    role = Role.query.filter_by(name=row['role']).first()
-                    if role:
-                        user.role_id = role.id
-                    else:
-                        errors.append(f"Row {row_num}: Role '{row['role']}' not found")
-                
-                db.session.add(user)
-                created_users.append(user.username)
-            except Exception as e:
-                errors.append(f"Row {row_num}: {str(e)}")
-        
-        db.session.commit()
-        
+        result = CSVHandler.import_users(StringIO(file.read().decode('utf-8')))
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+
         return jsonify({
             'success': True,
-            'message': f"Imported {len(created_users)} users",
-            'created_users': created_users,
-            'errors': errors
+            'message': f"Imported {result['added']} users, updated {result['updated']}",
+            'added': result['added'],
+            'updated': result['updated'],
+            'errors': result['errors']
         })
     except Exception as e:
         db.session.rollback()
@@ -2511,42 +2400,9 @@ def import_users():
 def export_users():
     """Export users to CSV format."""
     try:
-        include_passwords = request.args.get('include_passwords', 'false').lower() == 'true'
-        
-        # Get all users
-        users = User.query.all()
-        
-        if not users:
-            return jsonify({'error': 'No users found'}), 404
-        
-        # Prepare CSV data
-        output = StringIO()
-        fieldnames = ['username', 'email', 'active', 'role']
-        if include_passwords:
-            fieldnames.append('password')
-        
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
-        writer.writeheader()
-        
-        for user in users:
-            user_data = {
-                'username': user.username,
-                'email': user.email,
-                'active': str(user.active).lower(),
-                'role': user.role.name if user.role else ""
-            }
-            
-            if include_passwords:
-                # This is a placeholder. In a real system, we wouldn't export actual passwords
-                user_data['password'] = "********"
-            
-            writer.writerow(user_data)
-        
-        # Create response
-        response = make_response(output.getvalue())
+        response = make_response(CSVHandler.export_users())
         response.headers["Content-Disposition"] = "attachment; filename=users.csv"
-        response.headers["Content-type"] = "text/csv"
-        
+        response.headers["Content-Type"] = "text/csv"
         return response
     except Exception as e:
         current_app.logger.error(f"Error exporting users: {str(e)}")

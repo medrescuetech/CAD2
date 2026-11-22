@@ -166,8 +166,9 @@
                     </div>
                     <div class="alert alert-info">
                         <h6>CSV Format</h6>
-                        <p>Required columns: username, email, role</p>
-                        <p>Optional columns: active (true/false)</p>
+                        <p>Required columns: username, email</p>
+                        <p>Optional columns: first_name, last_name, role, active (true/false), password</p>
+                        <p>Existing usernames are updated; new users get password <code>cadsystem</code> unless the password column is set.</p>
                         <a href="#" onclick="downloadTemplate()">Download Template</a>
                     </div>
                 </form>
@@ -898,7 +899,7 @@ async function exportUsers() {
 }
 
 function downloadTemplate() {
-    const template = 'username,email,password,active,role\nuser1,user1@example.com,user,true,role1\n';
+    const template = 'username,email,first_name,last_name,role,active,password\njsmith,jsmith@example.com,John,Smith,Dispatcher,true,\n';
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -86,15 +86,15 @@
                     <h6><i class="fas fa-info-circle"></i> CSV Format Requirements:</h6>
                     <p>Your CSV file should include the following columns:</p>
                     <ul>
-                        <li><strong>unit_id</strong> - Unique unit identifier (required)</li>
-                        <li><strong>type</strong> - Unit type: ambulance, fire_truck, police, etc. (required)</li>
-                        <li><strong>location</strong> - Base location or station (required)</li>
-                        <li><strong>capacity</strong> - Unit capacity (optional)</li>
+                        <li><strong>name</strong> - Unit name/callsign (required)</li>
+                        <li><strong>type</strong> - Unit type name, e.g. Paramedic, BLS (optional; created if new)</li>
+                        <li><strong>location</strong> - Base location or station (optional)</li>
+                        <li><strong>status</strong> - e.g. available (optional, defaults to available)</li>
                         <li><strong>active</strong> - true or false (optional, defaults to true)</li>
                     </ul>
                     <p>Example CSV row:</p>
-                    <pre>unit_id,type,location,capacity,active
-AMB-001,ambulance,Central Station,4,true</pre>
+                    <pre>name,type,location,status,active
+AMB-001,Paramedic,Central Station,available,true</pre>
                 </div>
                 <form id="importUnitsForm" action="{{ url_for('admin.import_units') }}" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
