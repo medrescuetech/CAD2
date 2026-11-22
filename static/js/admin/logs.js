@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
             search: currentFilters.search
         });
 
-        fetch(`/api/admin/logs?${params}`)
+        fetch(`/admin/api/admin/logs?${params}`)
             .then(response => response.json())
             .then(data => {
                 updateLogsTable(data.logs);
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             search: currentFilters.search
         });
 
-        window.location.href = `/api/admin/logs/export?${params}`;
+        window.location.href = `/admin/api/admin/logs/export?${params}`;
     }
 
     // Utility function to get badge class based on log level

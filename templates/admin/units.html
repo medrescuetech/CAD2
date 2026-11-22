@@ -32,7 +32,7 @@
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
-                                            <th>Unit ID</th>
+                                            <th>Name</th>
                                             <th>Type</th>
                                             <th>Status</th>
                                             <th>Location</th>
@@ -42,11 +42,11 @@
                                     <tbody>
                                         {% for unit in units %}
                                         <tr>
-                                            <td>{{ unit.unit_id }}</td>
-                                            <td>{{ unit.type }}</td>
+                                            <td>{{ unit.name }}</td>
+                                            <td>{{ unit.type.name if unit.type else '' }}</td>
                                             <td>
                                                 <span class="badge bg-{{ 'success' if unit.active else 'danger' }}">
-                                                    {{ 'Active' if unit.active else 'Inactive' }}
+                                                    {{ unit.status or ('Active' if unit.active else 'Inactive') }}
                                                 </span>
                                             </td>
                                             <td>{{ unit.location }}</td>
@@ -123,28 +123,23 @@ AMB-001,Paramedic,Central Station,available,true</pre>
                 <form id="unitForm">
                     <input type="hidden" id="unitId" name="id">
                     <div class="mb-3">
-                        <label for="unitIdentifier" class="form-label">Unit ID</label>
-                        <input type="text" class="form-control" id="unitIdentifier" name="unit_id" required>
+                        <label for="unitIdentifier" class="form-label">Name / Callsign</label>
+                        <input type="text" class="form-control" id="unitIdentifier" name="name" required>
                     </div>
                     <div class="mb-3">
                         <label for="unitType" class="form-label">Type</label>
                         <select class="form-control" id="unitType" name="type" required>
                             <option value="">Select Type</option>
-                            <option value="ambulance">Ambulance</option>
-                            <option value="fire_truck">Fire Truck</option>
-                            <option value="police">Police</option>
-                            <option value="rescue">Rescue</option>
-                            <option value="hazmat">HAZMAT</option>
-                            <option value="other">Other</option>
+                            {% for t in unit_types %}
+                            <option value="{{ t.name }}">{{ t.name }}</option>
+                            {% endfor %}
+                            <option value="">— type a new type below —</option>
                         </select>
+                        <input type="text" class="form-control mt-1" id="unitTypeNew" placeholder="Or new type name…">
                     </div>
                     <div class="mb-3">
                         <label for="unitLocation" class="form-label">Location</label>
-                        <input type="text" class="form-control" id="unitLocation" name="location" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="unitCapacity" class="form-label">Capacity</label>
-                        <input type="number" class="form-control" id="unitCapacity" name="capacity">
+                        <input type="text" class="form-control" id="unitLocation" name="location">
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
@@ -194,10 +189,9 @@ const AdminManager = {
             .then(response => response.json())
             .then(data => {
                 document.getElementById('unitId').value = data.id;
-                document.getElementById('unitIdentifier').value = data.unit_id;
+                document.getElementById('unitIdentifier').value = data.name;
                 document.getElementById('unitType').value = data.type;
                 document.getElementById('unitLocation').value = data.location;
-                document.getElementById('unitCapacity').value = data.capacity || '';
                 document.getElementById('unitActive').checked = data.active;
                 
                 document.getElementById('unitModalTitle').textContent = 'Edit Unit';
@@ -211,6 +205,9 @@ const AdminManager = {
 
     saveUnit: function() {
         const formData = new FormData(document.getElementById('unitForm'));
+        const newType = document.getElementById('unitTypeNew').value.trim();
+        if (newType) formData.set('type', newType);
+        formData.set('active', document.getElementById('unitActive').checked);
         const unitId = formData.get('id');
         const method = unitId ? 'PUT' : 'POST';
         const url = unitId ? `/admin/api/units/${unitId}` : '/admin/api/units';
