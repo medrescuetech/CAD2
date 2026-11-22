@@ -178,7 +178,7 @@ function updateMapMarkers() {
         const location = row.querySelector('td:nth-child(2)').textContent;
         
         // Get location coordinates from the server
-        fetch(`/api/admin/locations/search?name=${encodeURIComponent(location)}`)
+        fetch(`/admin/api/admin/locations/search?name=${encodeURIComponent(location)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.location) {
@@ -209,7 +209,7 @@ function updateMapMarkers() {
         const location = row.querySelector('td:nth-child(4)').textContent;
         
         // Get location coordinates from the server
-        fetch(`/api/admin/locations/search?name=${encodeURIComponent(location)}`)
+        fetch(`/admin/api/admin/locations/search?name=${encodeURIComponent(location)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.location) {

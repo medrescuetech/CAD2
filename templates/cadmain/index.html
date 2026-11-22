@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% if map_enabled %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="cad-console container-fluid py-3">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-2">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Dispatch queue</h6>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadQueue()">Refresh</button>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="queueTable">
+            <thead><tr><th>#</th><th>Priority</th><th>Location</th><th>Status</th><th>Urgent</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="queueEmpty" class="p-3 text-muted small">Queue is empty.</div>
+        </div>
+      </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Transfers</h6></div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="xferTable">
+            <thead><tr><th>Type</th><th>From</th><th>To</th><th>State</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="xferEmpty" class="p-3 text-muted small" style="display:none">No transfers.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Open incidents</h6></div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="openTable">
+            <thead><tr><th>#</th><th>Owner</th><th>Location</th><th>Lifecycle</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+    <div id="unitsBoard">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Unit status</h6>
+          <span class="small text-muted">Select an incident for detail</span>
+        </div>
+        <div class="card-body p-0" style="max-height:70vh;overflow:auto">
+          <table class="table table-sm table-hover mb-0" id="unitsTable">
+            <thead><tr><th>Unit</th><th>Status</th><th>Type</th><th>Location</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="unitsEmpty" class="p-3 text-muted small" style="display:none">No units.</div>
+        </div>
+      </div>
+    </div>
+    <div id="detail" style="display:none">
+      <div class="card mb-2">
+        <div class="card-header d-flex justify-content-between">
+          <h6 class="mb-0" id="incTitle"></h6>
+          <span class="badge bg-secondary" id="incStatus"></span>
+        </div>
+        <div class="card-body small" id="incMeta"></div>
+      </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Responses / units</h6></div>
+        <table class="table table-sm mb-0" id="respTable">
+          <thead><tr><th>Unit</th><th>Role</th><th>Status</th><th>Advance</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="card-body">
+          <div class="input-group input-group-sm">
+            <select class="form-select" id="unitSelect"></select>
+            <select class="form-select" id="roleSelect">
+              <option value="primary">primary</option><option value="backup">backup</option>
+            </select>
+            <button class="btn btn-primary" onclick="assignUnit()">Assign</button>
+          </div>
+        </div>
+      </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Close incident</h6></div>
+        <div class="card-body">
+          <div class="input-group input-group-sm">
+            <input class="form-control" id="closeOutcome" placeholder="Outcome (required)">
+            <input class="form-control" id="closeNote" placeholder="Closure note">
+            <button class="btn btn-danger" onclick="closeInc()">Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Actions</h6></div>
+        <div class="card-body">
+          <div class="row g-1 align-items-center mb-1">
+            <div class="col-9"><input class="form-control form-control-sm" id="urgentMsg"
+              placeholder="Urgent message"></div>
+            <div class="col-3"><button class="btn btn-warning btn-sm w-100"
+              onclick="postUrgent()">Flag urgent</button></div>
+            <div class="col-3"><input class="form-control form-control-sm" id="xferTo"
+              placeholder="User id"></div>
+            <div class="col-6"><input class="form-control form-control-sm" id="xferNote"
+              placeholder="Handover note"></div>
+            <div class="col-3"><button class="btn btn-outline-primary btn-sm w-100"
+              onclick="offerTransfer()">Transfer</button></div>
+            <div class="col-3"><input class="form-control form-control-sm" id="linkId"
+              placeholder="Incident id"></div>
+            <div class="col-5"><select class="form-select form-select-sm" id="linkRel">
+              <option value="related">related</option><option value="same_event">same_event</option>
+              <option value="secondary">secondary</option><option value="duplicate">duplicate</option>
+              <option value="dependent">dependent</option></select></div>
+            <div class="col-4"><button class="btn btn-outline-secondary btn-sm w-100"
+              onclick="linkInc()">Link</button></div>
+            <div class="col-8"><input class="form-control form-control-sm" id="dupSurvivor"
+              placeholder="Surviving incident id (cancel this as duplicate)"></div>
+            <div class="col-4"><button class="btn btn-outline-danger btn-sm w-100"
+              onclick="cancelDup()">Cancel dup</button></div>
+            <div class="col-8"><input class="form-control form-control-sm" id="reopenReason"
+              placeholder="Reopen reason"></div>
+            <div class="col-4"><button class="btn btn-outline-success btn-sm w-100"
+              onclick="reopenInc()">Reopen</button></div>
+            <div class="col-12 mt-1">
+              <a class="btn btn-outline-secondary btn-sm" id="exportJson">Export JSON</a>
+              <a class="btn btn-outline-secondary btn-sm" id="exportCsv">Chronology CSV</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Chronology</h6></div>
+        <div class="card-body p-0" style="max-height:300px;overflow:auto">
+          <table class="table table-sm mb-0" id="chronTable">
+            <thead><tr><th>Time</th><th>Action</th><th>Summary</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% if map_enabled %}
+    <div class="card mt-2">
+      <div class="card-header"><h6 class="mb-0">Map</h6></div>
+      <div id="cadMap" style="height:320px"></div>
+    </div>
+    {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const api = (p, o={}) => fetch('/api/core' + p, {
+  headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf,
+            ...(o.headers||{})}, ...o}).then(r => r.json());
+const adminApi = p => fetch('/admin/api' + p,
+  {headers: {'X-CSRF-Token': csrf}}).then(r => r.json());
+let inc = null, units = [];
+
+const NEXT = {ASSIGNED:['DISPATCHED','ACKNOWLEDGED','CANCELLED','DEALLOCATED'],
+  DISPATCHED:['ACKNOWLEDGED','EN_ROUTE','CANCELLED','DEALLOCATED'],
+  ACKNOWLEDGED:['EN_ROUTE','CANCELLED','DEALLOCATED'],
+  EN_ROUTE:['ARRIVED_SCENE','CANCELLED','DEALLOCATED'],
+  ARRIVED_SCENE:['DEPARTED_SCENE','CLEAR','DEALLOCATED'],
+  DEPARTED_SCENE:['ARRIVED_DESTINATION','CLEAR'],
+  ARRIVED_DESTINATION:['CLEAR']};
+
+async function loadUnits() {
+  const r = await adminApi('/units');
+  const all = r.units || [];
+  units = all.filter(u => u.status === 'available' || u.status === 'AVAILABLE' || !u.status);
+  unitSelect.innerHTML = units.map(u => `<option value="${u.id}">${u.name||u.callsign||'unit-'+u.id}</option>`).join('');
+  const tb = document.querySelector('#unitsTable tbody');
+  tb.innerHTML = '';
+  unitsEmpty.style.display = all.length ? 'none' : '';
+  for (const u of all)
+    tb.innerHTML += `<tr><td>${u.name||u.callsign||'unit-'+u.id}</td>
+      <td><span class="st st-${(u.status||'').toLowerCase()}">${u.status||'—'}</span></td>
+      <td>${u.type||''}</td><td>${u.location||''}</td></tr>`;
+}
+
+async function loadQueue() {
+  const r = await api('/queue');
+  const q = (r.queue && r.queue.unassigned) || r.unassigned || [];
+  const tb = document.querySelector('#queueTable tbody');
+  tb.innerHTML = '';
+  queueEmpty.style.display = q.length ? 'none' : '';
+  const row = i => `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
+      <td>${i.id}</td><td class="pri-${String(i.priority||'').toLowerCase()}">${i.priority||''}</td>
+      <td>${i.location||''}</td>
+      <td><span class="st st-${(i.lifecycle_status||'').toLowerCase()}">${i.lifecycle_status||''}</span></td>
+      <td>${i.urgent_update?'<span class="st st-urgent">URG</span>':''}</td></tr>`;
+  for (const i of q) tb.innerHTML += row(i);
+  const inflight = r.in_flight || (r.queue && r.queue.in_flight) || [];
+  for (const i of inflight) tb.innerHTML += row(i);
+  bindRows();
+}
+
+async function loadOpen() {
+  const r = await api('/incidents?open=1');
+  const tb = document.querySelector('#openTable tbody');
+  tb.innerHTML = '';
+  for (const i of r.incidents || [])
+    tb.innerHTML += `<tr class="inc-row" data-id="${i.id}" style="cursor:pointer">
+      <td>${i.id}</td><td>${i.owning_application||''}</td><td>${i.location||''}</td>
+      <td><span class="st st-${(i.lifecycle_status||'').toLowerCase()}">${i.lifecycle_status||''}</span></td>
+      <td>${i.escalated_at ? '<span class="st st-assigned">ESC</span>' : ''}</td></tr>`;
+  bindRows();
+}
+
+function bindRows() {
+  document.querySelectorAll('.inc-row').forEach(tr =>
+    tr.onclick = () => openDetail(tr.dataset.id));
+}
+
+async function openDetail(id) {
+  const r = await api(`/incidents/${id}/export`);
+  const b = r.bundle || r;
+  inc = b.incident || b;
+  detail.style.display = '';
+  unitsBoard.style.display = 'none';
+  document.querySelectorAll('.inc-row').forEach(t =>
+    t.classList.toggle('selected', t.dataset.id == id));
+  incTitle.textContent = `#${inc.id} ${inc.incident_number||''} — ${inc.location||''}`;
+  incStatus.innerHTML = `<span class="st st-${(inc.lifecycle_status||inc.status||'').toLowerCase()}">${inc.lifecycle_status||inc.status}</span>`;
+  exportJson.href = `/api/core/incidents/${inc.id}/export`;
+  exportCsv.href = `/api/core/incidents/${inc.id}/chronology.csv`;
+  incMeta.innerHTML = `Owner: ${inc.owning_application||'—'} · Priority: ${inc.priority||'—'} ·
+    Caller: ${inc.caller||'—'} ${inc.callback_number||''}<br>${inc.description||''}`;
+
+  const resps = b.responses || [];
+  const tb = document.querySelector('#respTable tbody');
+  tb.innerHTML = '';
+  for (const resp of resps) {
+    const nexts = (NEXT[resp.status] || []);
+    tb.innerHTML += `<tr><td>${resp.unit_name||'unit-'+resp.unit_id}</td>
+      <td>${resp.response_role||''}</td>
+      <td><span class="st st-${(resp.status||'').toLowerCase()}">${resp.status}</span></td>
+      <td>${nexts.map(n => `<button class="btn btn-outline-primary btn-sm me-1"
+        onclick="advance(${resp.id},'${n}')">${n}</button>`).join('')}</td></tr>`;
+  }
+
+  const ct = document.querySelector('#chronTable tbody');
+  ct.innerHTML = '';
+  for (const e of (b.chronology || []).slice(-50).reverse())
+    ct.innerHTML += `<tr><td>${(e.occurred_at_utc||'').replace('T',' ').slice(0,19)}</td>
+      <td>${e.action_type}</td><td>${e.summary_text||''}</td></tr>`;
+}
+
+async function assignUnit() {
+  const r = await api(`/incidents/${inc.id}/responses`, {method: 'POST',
+    body: JSON.stringify({unit_id: parseInt(unitSelect.value), role: roleSelect.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Assign failed');
+}
+
+async function advance(respId, status) {
+  const r = await api(`/responses/${respId}/status`, {method: 'PATCH',
+    body: JSON.stringify({status})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function postUrgent() {
+  const r = await api(`/incidents/${inc.id}/urgent-messages`, {method: 'POST',
+    body: JSON.stringify({message: urgentMsg.value})});
+  if (r.success) { urgentMsg.value=''; openDetail(inc.id); }
+  else alert(r.message || 'Failed');
+}
+
+async function offerTransfer() {
+  const r = await api(`/incidents/${inc.id}/transfer`, {method: 'POST',
+    body: JSON.stringify({to_user_id: parseInt(xferTo.value),
+                          handover_note: xferNote.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function linkInc() {
+  const r = await api(`/incidents/${inc.id}/link`, {method: 'POST',
+    body: JSON.stringify({related_incident_id: parseInt(linkId.value),
+                          relationship: linkRel.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+async function cancelDup() {
+  const r = await api(`/incidents/${inc.id}/cancel-duplicate`, {method: 'POST',
+    body: JSON.stringify({surviving_incident_id: parseInt(dupSurvivor.value)})});
+  if (r.success) { detail.style.display='none'; unitsBoard.style.display='';
+                   loadQueue(); loadOpen(); }
+  else alert(r.message || 'Failed');
+}
+
+async function reopenInc() {
+  const r = await api(`/incidents/${inc.id}/reopen`, {method: 'POST',
+    body: JSON.stringify({reason: reopenReason.value})});
+  if (r.success) openDetail(inc.id); else alert(r.message || 'Failed');
+}
+
+const meId = {{ current_user.id }};
+
+async function loadTransfers() {
+  const r = await api('/transfers');
+  const list = r.transfers || [];
+  const tb = document.querySelector('#xferTable tbody');
+  tb.innerHTML = '';
+  xferEmpty.style.display = list.length ? 'none' : '';
+  for (const t of list) {
+    const kind = t.incident_id ? 'Incident #'+t.incident_id : 'Intake #'+t.intake_id;
+    const mine = t.to_user_id === meId && t.state === 'OFFERED';
+    tb.innerHTML += `<tr><td>${kind}</td><td>${t.from_user_id}</td>
+      <td>${t.to_user_id}</td>
+      <td><span class="st st-${t.state.toLowerCase()}">${t.state}</span></td>
+      <td>${mine ? `<button class="btn btn-success btn-sm" onclick="resolveXfer(${t.id},1)">Accept</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="resolveXfer(${t.id},0)">Decline</button>` : ''}</td></tr>`;
+  }
+}
+
+async function resolveXfer(id, accept) {
+  const r = await api(`/transfers/${id}/resolve`, {method: 'POST',
+    body: JSON.stringify({accept: !!accept})});
+  if (r.success) { loadTransfers(); loadOpen(); }
+  else alert(r.message || 'Failed');
+}
+
+async function closeInc() {
+  const r = await api(`/incidents/${inc.id}/close`, {method: 'POST',
+    body: JSON.stringify({outcome: closeOutcome.value, closure_note: closeNote.value})});
+  if (r.success) { detail.style.display='none'; unitsBoard.style.display='';
+                   loadUnits(); loadQueue(); loadOpen(); }
+  else alert(r.message || 'Close failed');
+}
+
+{% if map_enabled %}
+let cadMap = null, markers = [];
+function initMap() {
+  cadMap = L.map('cadMap', {zoomControl: true}).setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(cadMap);
+}
+async function refreshMap() {
+  const r = await api('/incidents?open=1');
+  markers.forEach(m => m.remove());
+  markers = [];
+  const pts = [];
+  for (const i of r.incidents || []) {
+    if (i.latitude == null || i.longitude == null) continue;
+    const m = L.marker([i.latitude, i.longitude])
+      .bindTooltip(`#${i.id} ${i.location||''} (${i.lifecycle_status||''})`);
+    m.addTo(cadMap);
+    markers.push(m);
+    pts.push([i.latitude, i.longitude]);
+  }
+  if (pts.length) cadMap.fitBounds(pts, {padding: [30, 30], maxZoom: 14});
+}
+initMap(); refreshMap();
+{% endif %}
+loadUnits();
+loadQueue(); loadOpen(); loadTransfers();
+setInterval(() => { loadQueue(); loadOpen(); loadTransfers();
+  if (!inc) loadUnits();
+  {% if map_enabled %}refreshMap();{% endif %} }, 10000);
+</script>
+{% if map_enabled %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endif %}
+{% endblock %}

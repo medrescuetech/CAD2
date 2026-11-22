@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% endblock %}
+{% block content %}
+<div class="cad-console container-fluid py-3">
+  <div class="row">
+    <div class="col-md-3">
+      <div class="card mb-2">
+        <div class="card-header"><h6 class="mb-0">Workspaces</h6></div>
+        <ul class="list-group list-group-flush" id="wsList"></ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">New workspace</h6></div>
+        <div class="card-body">
+          <input class="form-control form-control-sm mb-1" id="wsCode"
+                 placeholder="Code (e.g. FEST-2026)">
+          <input class="form-control form-control-sm mb-1" id="wsName"
+                 placeholder="Name">
+          <input class="form-control form-control-sm mb-1" id="wsVenue"
+                 placeholder="Venue">
+          <button class="btn btn-primary btn-sm" onclick="createWs()">Create</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-9" id="wsDetail" style="display:none">
+      <div class="card mb-2">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0" id="wsTitle"></h6>
+          <div>
+            <span class="badge bg-secondary" id="wsStatus"></span>
+            <button class="btn btn-outline-primary btn-sm"
+                    onclick="setStatus('ACTIVE')">Activate</button>
+            <button class="btn btn-outline-secondary btn-sm"
+                    onclick="setStatus('CLOSED')">Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-5">
+          <div class="card mb-2">
+            <div class="card-header"><h6 class="mb-0">Import location pack (CSV)</h6></div>
+            <div class="card-body">
+              <textarea class="form-control form-control-sm" id="packCsv" rows="5"
+                placeholder="location_key,location_name,map_reference,response_area&#10;GATE-N,North Gate,GRID-A1,RA-1"></textarea>
+              <button class="btn btn-primary btn-sm mt-2" onclick="importPack()">Stage</button>
+              <div id="packPreview" class="small mt-2"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h6 class="mb-0">Resolve response post</h6></div>
+            <div class="card-body">
+              <input class="form-control form-control-sm mb-1" id="mapRef"
+                     placeholder="Map reference">
+              <input class="form-control form-control-sm mb-1" id="respArea"
+                     placeholder="Response area">
+              <button class="btn btn-outline-primary btn-sm"
+                      onclick="resolvePost()">Resolve</button>
+              <div id="resolveOut" class="small mt-2"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h6 class="mb-0">Response rules</h6></div>
+            <div class="card-body">
+              <div class="row g-1">
+                <div class="col-6"><input class="form-control form-control-sm" id="ruleArea"
+                  placeholder="Response area"></div>
+                <div class="col-6"><input class="form-control form-control-sm" id="ruleMap"
+                  placeholder="Map ref"></div>
+                <div class="col-6"><input class="form-control form-control-sm" id="rulePri"
+                  placeholder="Primary responder"></div>
+                <div class="col-6"><input class="form-control form-control-sm" id="ruleSec"
+                  placeholder="Secondary responder"></div>
+                <div class="col-12"><button class="btn btn-outline-primary btn-sm w-100"
+                  onclick="addRule()">Add rule</button></div>
+              </div>
+            </div>
+            <table class="table table-sm mb-0" id="ruleTable">
+              <thead><tr><th>Area</th><th>Map ref</th><th>Primary</th><th>Secondary</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div class="card mb-2">
+            <div class="card-header"><h6 class="mb-0">Active locations</h6></div>
+            <table class="table table-sm mb-0" id="locTable">
+              <thead><tr><th>Key</th><th>Name</th><th>Map ref</th><th>Area</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h6 class="mb-0">Incidents in workspace</h6>
+              <span id="wsMsg" class="small"></span>
+            </div>
+            <table class="table table-sm mb-0" id="incTable">
+              <thead><tr><th>#</th><th>Location</th><th>Status</th><th>Priority</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const api = (p, o={}) => fetch('/api/core' + p, {
+  headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf,
+            ...(o.headers||{})}, ...o}).then(r => r.json());
+let ws = null;
+
+async function loadWs() {
+  const r = await api('/events');
+  const ul = document.getElementById('wsList');
+  ul.innerHTML = '';
+  for (const e of r.events || []) {
+    const li = document.createElement('li');
+    li.className = 'list-group-item list-group-item-action';
+    li.innerHTML = `<b>${e.code}</b> ${e.name}
+      <span class="st st-${(e.status||'').toLowerCase()} float-end">${e.status}</span>`;
+    li.onclick = () => selectWs(e);
+    ul.appendChild(li);
+  }
+}
+
+async function createWs() {
+  const r = await api('/events', {method: 'POST', body: JSON.stringify({
+    code: wsCode.value, name: wsName.value, venue_name: wsVenue.value})});
+  if (!r.success) { alert(r.message || 'Failed'); return; }
+  loadWs();
+}
+
+function selectWs(e) {
+  ws = e;
+  wsDetail.style.display = '';
+  wsTitle.textContent = e.code + ' — ' + e.name + (e.venue_name ? ' @ ' + e.venue_name : '');
+  wsStatus.textContent = e.status;
+  loadLocations(); loadIncidents(); loadRules();
+}
+
+async function setStatus(s) {
+  const r = await api(`/events/${ws.id}/status`,
+                      {method: 'POST', body: JSON.stringify({status: s})});
+  if (r.success) { ws = r.event; selectWs(ws); loadWs(); }
+  else alert(r.message || 'Failed');
+}
+
+async function importPack() {
+  const r = await api(`/events/${ws.id}/packs/import`,
+                      {method: 'POST', body: JSON.stringify({csv: packCsv.value})});
+  if (!r.success) { packPreview.textContent = r.message || 'Failed'; return; }
+  const p = r.preview;
+  packPreview.innerHTML = `Staged pack #${r.pack.id}: ${p.create} locations, ${p.rejected} rejected` +
+    (p.errors && p.errors.length ? ` — errors: ${p.errors.join('; ')}` : '') +
+    ` <button class="btn btn-success btn-sm" onclick="activatePack(${r.pack.id})">Activate</button>`;
+}
+
+async function activatePack(id) {
+  const r = await api(`/packs/${id}/activate`, {method: 'POST', body: '{}'});
+  if (r.success) { packPreview.textContent = 'Pack active'; loadLocations(); }
+  else alert(r.message || 'Failed');
+}
+
+async function loadLocations() {
+  const r = await api(`/events/${ws.id}/locations`);
+  const tb = document.querySelector('#locTable tbody');
+  tb.innerHTML = '';
+  for (const l of r.locations || [])
+    tb.innerHTML += `<tr><td>${l.location_key||''}</td><td>${l.location_name||''}</td>
+      <td>${l.map_reference||''}</td><td>${l.response_area||''}</td></tr>`;
+}
+
+async function loadRules() {
+  const r = await api(`/events/${ws.id}/response-rules`);
+  const tb = document.querySelector('#ruleTable tbody');
+  tb.innerHTML = '';
+  for (const ru of r.rules || [])
+    tb.innerHTML += `<tr><td>${ru.response_area||''}</td><td>${ru.map_reference||''}</td>
+      <td>${ru.primary_responder||''}</td><td>${ru.secondary_responder||''}</td>
+      <td>${ru.active ? `<button class="btn btn-outline-danger btn-sm" onclick="delRule(${ru.id})">Off</button>` : 'off'}</td></tr>`;
+}
+
+async function addRule() {
+  const r = await api(`/events/${ws.id}/response-rules`, {method: 'POST',
+    body: JSON.stringify({response_area: ruleArea.value, map_reference: ruleMap.value,
+      primary_responder: rulePri.value, secondary_responder: ruleSec.value})});
+  if (r.success) { ruleArea.value=ruleMap.value=rulePri.value=ruleSec.value=''; loadRules(); }
+  else alert(r.message || 'Failed');
+}
+
+async function delRule(id) {
+  const r = await api(`/response-rules/${id}`, {method: 'DELETE'});
+  if (r.success) loadRules(); else alert(r.message || 'Failed');
+}
+
+async function resolvePost() {
+  const q = new URLSearchParams();
+  if (mapRef.value) q.set('map_reference', mapRef.value);
+  if (respArea.value) q.set('response_area', respArea.value);
+  const r = await api(`/events/${ws.id}/resolve-response?` + q);
+  const res = r.resolution || {};
+  resolveOut.textContent = res.response_area || res.primary_responder
+    ? `→ area ${res.response_area || '—'} · primary ${res.primary_responder || '—'} · secondary ${res.secondary_responder || '—'}`
+    : 'No match';
+}
+
+async function loadIncidents() {
+  const r = await api(`/incidents?event_workspace_id=${ws.id}`);
+  const tb = document.querySelector('#incTable tbody');
+  tb.innerHTML = '';
+  for (const i of r.incidents || [])
+    tb.innerHTML += `<tr><td>${i.id}</td><td>${i.location||''}</td>
+      <td><span class="st st-${(i.lifecycle_status||i.status||'').toLowerCase()}">${i.lifecycle_status||i.status}</span></td>
+      <td class="pri-${String(i.priority).toLowerCase()}">${i.priority}</td>
+      <td><select class="form-select form-select-sm d-inline w-auto" id="esc-${i.id}">
+        <option value="MAIN_LEAD">Main lead</option>
+        <option value="FULL_TRANSFER">Full transfer</option>
+        <option value="SHARED_MAJOR">Shared major</option></select>
+      <button class="btn btn-outline-warning btn-sm"
+        onclick="escalate(${i.id})">Escalate</button></td></tr>`;
+}
+
+async function escalate(id) {
+  const mode = document.getElementById('esc-' + id).value;
+  const r = await api(`/incidents/${id}/escalate`,
+                      {method: 'POST', body: JSON.stringify({mode})});
+  if (r.success) {
+    document.getElementById('wsMsg').textContent =
+      `Incident #${id} escalated (${mode})`;
+    document.getElementById('wsMsg').className = 'small text-success';
+    loadIncidents();
+  }
+  else alert(r.message || 'Failed');
+}
+
+loadWs();
+</script>
+{% endblock %}

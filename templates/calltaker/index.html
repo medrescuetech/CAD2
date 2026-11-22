@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cad.css') }}">
+{% endblock %}
+{% block content %}
+<div class="cad-console container-fluid py-3">
+  <div class="row">
+    <div class="col-md-5">
+      <div class="card">
+        <div class="card-header"><h5 class="mb-0">New intake</h5></div>
+        <div class="card-body">
+          <form id="intakeForm">
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label">Source</label>
+                <select class="form-select form-select-sm" name="source">
+                  <option>telephone</option><option>radio</option>
+                  <option>walkup</option><option>event_post</option>
+                  <option>external_agency</option><option>other</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Priority</label>
+                <select class="form-select form-select-sm" name="priority_code">
+                  <option value="">—</option><option>P1</option><option>P2</option>
+                  <option>P3</option><option>NONURGENT</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Caller name</label>
+                <input class="form-control form-control-sm" name="caller_name">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Callback #</label>
+                <input class="form-control form-control-sm" name="callback_number">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Location</label>
+                <input class="form-control form-control-sm" name="location_text"
+                       placeholder="Address, venue, landmark…">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Latitude</label>
+                <input class="form-control form-control-sm" name="latitude">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Longitude</label>
+                <input class="form-control form-control-sm" name="longitude">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Problem / what's happening</label>
+                <textarea class="form-control form-control-sm" name="problem_text"
+                          rows="2"></textarea>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Operator summary / notes</label>
+                <textarea class="form-control form-control-sm" name="operator_summary"
+                          rows="1"></textarea>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm mt-2" type="submit">Create intake</button>
+            <span id="formMsg" class="ms-2 small"></span>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Open intakes</h5>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadIntakes()">Refresh</button>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0" id="intakeTable">
+            <thead><tr>
+              <th>#</th><th>Source</th><th>Pri</th><th>Caller</th><th>Location</th>
+              <th>Problem</th><th>Route to</th><th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="empty" class="p-3 text-muted small">No open intakes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const api = (path, opts={}) => fetch('/api/core' + path, {
+  headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf,
+            ...(opts.headers||{})},
+  ...opts}).then(r => r.json());
+let events = [];
+
+async function loadEvents() {
+  const r = await api('/events');
+  events = (r.event_workspaces || r.events || []);
+}
+
+async function loadIntakes() {
+  const r = await api('/intakes?state=OPEN');
+  const intakes = r.intakes || [];
+  const tbody = document.querySelector('#intakeTable tbody');
+  tbody.innerHTML = '';
+  document.getElementById('empty').style.display = intakes.length ? 'none' : '';
+  for (const i of intakes) {
+    const opts = ['<option value="MAIN">CAD Main</option>']
+      .concat(events.map(e => `<option value="${e.id}">Event: ${e.code}</option>`))
+      .join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i.id}</td><td>${i.source||''}</td>
+      <td>${i.priority_code ? `<span class="st pri-${i.priority_code.toLowerCase()}">${i.priority_code}</span>` : ''}</td>
+      <td>${i.caller_name||''}<br><small class="text-muted">${i.callback_number||''}</small></td>
+      <td>${i.location_text||''}</td><td>${(i.problem_text||'').slice(0,60)}</td>
+      <td><select class="form-select form-select-sm" id="tgt-${i.id}">${opts}</select></td>
+      <td><button class="btn btn-success btn-sm" onclick="route(${i.id})">Route</button>
+          <button class="btn btn-outline-danger btn-sm" onclick="closeIntake(${i.id})">Close</button></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+async function route(id) {
+  const target = document.getElementById('tgt-' + id).value;
+  const r = await api(`/intakes/${id}/route`,
+                      {method: 'POST', body: JSON.stringify({target})});
+  if (!r.success) { alert(r.message || 'Route failed'); return; }
+  loadIntakes();
+}
+
+async function closeIntake(id) {
+  const r = await api(`/intakes/${id}/close`,
+                      {method: 'POST', body: JSON.stringify({state: 'CANCELLED'})});
+  if (!r.success) { alert(r.message || 'Close failed'); return; }
+  loadIntakes();
+}
+
+document.getElementById('intakeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target).entries());
+  for (const k of ['latitude', 'longitude']) f[k] = f[k] ? parseFloat(f[k]) : null;
+  const r = await api('/intakes', {method: 'POST', body: JSON.stringify(f)});
+  const msg = document.getElementById('formMsg');
+  if (r.success) {
+    const dups = r.duplicate_candidates || [];
+    msg.textContent = 'Created #' + r.intake.id +
+      (dups.length ? ' — possible duplicates: ' +
+       dups.map(d => '#' + d.incident.id + ' (' + d.reasons.join(', ') + ')')
+           .join('; ') : '');
+    if (dups.length) msg.className = 'ms-2 small text-danger fw-bold';
+    else msg.className = 'ms-2 small text-muted';
+    e.target.reset();
+    loadIntakes();
+  } else {
+    msg.textContent = r.message || 'Failed';
+  }
+});
+
+loadEvents().then(loadIntakes);
+</script>
+{% endblock %}

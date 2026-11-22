@@ -11,6 +11,7 @@ import io
 import csv
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from utils.csv_handler import CSVHandler
 
 # Create the admin blueprint
 admin = Blueprint('admin', __name__, url_prefix='/admin')
@@ -356,7 +357,10 @@ def locations():
 @permission_required(Permission.VIEW_PICKUP_POINTS)
 def pickup_points():
     """Display pickup points management page."""
-    pickup_points = PickupPoint.query.all()
+    pickup_points = [{
+        'id': p.id, 'name': p.name, 'type': '', 'address': p.location,
+        'latitude': p.latitude, 'longitude': p.longitude, 'active': p.active
+    } for p in PickupPoint.query.all()]
     return current_app.custom_render_template('admin/pickup_points.html', pickup_points=pickup_points)
 
 @admin.route('/reports')
@@ -379,7 +383,7 @@ def incident_reports():
 @admin_required
 def unit_reports():
     """Display unit reports."""
-    units = Unit.query.order_by(Unit.unit_number).all()
+    units = Unit.query.order_by(Unit.name).all()
     return current_app.custom_render_template('admin/reports/units.html', units=units)
 
 @admin.route('/reports/system')
@@ -781,7 +785,7 @@ def handle_settings_update(data):
 def manage_units():
     """Unit management page."""
     try:
-        units = Unit.query.order_by(Unit.unit_number).all()
+        units = Unit.query.order_by(Unit.name).all()
         unit_types = UnitType.query.all()
         return current_app.custom_render_template('admin/units.html', units=units, unit_types=unit_types)
     except Exception as e:
@@ -796,29 +800,36 @@ def manage_units():
 def add_unit():
     """Add a new unit."""
     try:
-        unit_number = request.form.get('unit_number')
-        unit_type = request.form.get('unit_type')
-        station = request.form.get('station')
-        
-        if not unit_number or not unit_type:
-            flash('Unit number and type are required.', 'error')
+        name = request.form.get('name') or request.form.get('unit_id')
+        type_name = request.form.get('type') or request.form.get('unit_type')
+        location = request.form.get('location') or request.form.get('station')
+
+        if not name or not type_name:
+            flash('Unit name and type are required.', 'error')
             return redirect(url_for('admin.units'))
-            
-        # Check if unit number already exists
-        if Unit.query.filter_by(unit_number=unit_number).first():
-            flash('A unit with this number already exists.', 'error')
+
+        if Unit.query.filter_by(name=name).first():
+            flash('A unit with this name already exists.', 'error')
             return redirect(url_for('admin.units'))
-            
+
+        unit_type = UnitType.query.filter(
+            func.lower(UnitType.name) == type_name.strip().lower()).first()
+        if not unit_type:
+            unit_type = UnitType(name=type_name.strip())
+            db.session.add(unit_type)
+            db.session.flush()
+
         unit = Unit(
-            unit_number=unit_number,
-            unit_type=unit_type,
-            station=station,
-            status='available'
+            name=name,
+            type=unit_type,
+            location=location or '',
+            status='available',
+            active=True
         )
         db.session.add(unit)
         db.session.commit()
-        
-        flash(f'Unit {unit_number} added successfully.', 'success')
+
+        flash(f'Unit {name} added successfully.', 'success')
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error adding unit: {str(e)}")
@@ -834,20 +845,29 @@ def edit_unit(unit_id):
     """Edit an existing unit."""
     try:
         unit = Unit.query.get_or_404(unit_id)
-        
-        unit_type = request.form.get('unit_type')
-        station = request.form.get('station')
+
+        name = request.form.get('name')
+        type_name = request.form.get('type')
+        location = request.form.get('location')
         status = request.form.get('status')
-        
-        if unit_type:
-            unit.unit_type = unit_type
-        if station:
-            unit.station = station
+
+        if name:
+            unit.name = name
+        if type_name:
+            unit_type = UnitType.query.filter(
+                func.lower(UnitType.name) == type_name.strip().lower()).first()
+            if not unit_type:
+                unit_type = UnitType(name=type_name.strip())
+                db.session.add(unit_type)
+                db.session.flush()
+            unit.type = unit_type
+        if location is not None:
+            unit.location = location
         if status:
             unit.status = status
-            
+
         db.session.commit()
-        flash(f'Unit {unit.unit_number} updated successfully.', 'success')
+        flash(f'Unit {unit.name} updated successfully.', 'success')
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error updating unit: {str(e)}")
@@ -865,13 +885,16 @@ def delete_unit(unit_id):
         unit = Unit.query.get_or_404(unit_id)
         
         # Check if unit is currently assigned to any incidents
-        if unit.current_incident_id:
+        active_assignment = UnitAssignment.query.filter(
+            UnitAssignment.unit_id == unit.id,
+            UnitAssignment.cleared_at.is_(None)).first()
+        if active_assignment:
             flash('Cannot delete unit while it is assigned to an incident.', 'error')
             return redirect(url_for('admin.units'))
-            
+
         db.session.delete(unit)
         db.session.commit()
-        flash(f'Unit {unit.unit_number} deleted successfully.', 'success')
+        flash(f'Unit {unit.name} deleted successfully.', 'success')
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error deleting unit: {str(e)}")
@@ -1849,11 +1872,11 @@ def get_unit(unit_id):
         return jsonify({
             'success': True,
             'id': unit.id,
-            'unit_id': unit.unit_number,
-            'type': unit.type,
-            'location': unit.station or '',
-            'capacity': unit.capacity,
-            'active': unit.status != 'Out of Service'
+            'name': unit.name,
+            'type': unit.type.name if unit.type else '',
+            'location': unit.location or '',
+            'status': unit.status or '',
+            'active': bool(unit.active)
         })
     except Exception as e:
         current_app.logger.error(f"Error retrieving unit {unit_id}: {str(e)}")
@@ -1871,36 +1894,45 @@ def create_unit():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['unit_id', 'type', 'location']
+        required_fields = ['name', 'type']
         is_valid, error_message = validate_request_data(data, required_fields)
         if not is_valid:
             return jsonify({
                 'success': False,
                 'message': error_message
             }), 400
-        
-        # Check if unit with same ID already exists
-        existing_unit = Unit.query.filter_by(unit_number=data['unit_id']).first()
+
+        # Check if unit with same name already exists
+        existing_unit = Unit.query.filter_by(name=data['name']).first()
         if existing_unit:
             return jsonify({
                 'success': False,
-                'message': f"Unit with ID {data['unit_id']} already exists"
+                'message': f"Unit '{data['name']}' already exists"
             }), 400
-        
-        # Create new unit
+
+        unit_type = None
+        if data.get('type'):
+            type_name = data['type'].strip()
+            unit_type = UnitType.query.filter(
+                func.lower(UnitType.name) == type_name.lower()).first()
+            if not unit_type:
+                unit_type = UnitType(name=type_name)
+                db.session.add(unit_type)
+                db.session.flush()
+
         unit = Unit(
-            unit_number=data['unit_id'],
-            type=data['type'],
-            station=data['location'],
-            capacity=data.get('capacity'),
-            status='Available' if data.get('active', True) else 'Out of Service'
+            name=data['name'],
+            type=unit_type,
+            location=data.get('location', ''),
+            status=data.get('status') or 'available',
+            active=str(data.get('active', 'true')).lower() not in ('false', '0', 'no')
         )
-        
+
         db.session.add(unit)
         db.session.commit()
-        
-        current_app.logger.info(f"Created new unit: {data['unit_id']}")
-        
+
+        current_app.logger.info(f"Created new unit: {data['name']}")
+
         return jsonify({
             'success': True,
             'message': 'Unit created successfully',
@@ -1925,33 +1957,42 @@ def update_unit(unit_id):
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['unit_id', 'type', 'location']
+        required_fields = ['name']
         is_valid, error_message = validate_request_data(data, required_fields)
         if not is_valid:
             return jsonify({
                 'success': False,
                 'message': error_message
             }), 400
-        
-        # Check if unit_id is being changed and if it conflicts with an existing unit
-        if data['unit_id'] != unit.unit_number:
-            existing_unit = Unit.query.filter_by(unit_number=data['unit_id']).first()
+
+        # Check if name is being changed and if it conflicts with an existing unit
+        if data['name'] != unit.name:
+            existing_unit = Unit.query.filter_by(name=data['name']).first()
             if existing_unit and existing_unit.id != unit_id:
                 return jsonify({
                     'success': False,
-                    'message': f"Unit with ID {data['unit_id']} already exists"
+                    'message': f"Unit '{data['name']}' already exists"
                 }), 400
-        
-        # Update unit fields
-        unit.unit_number = data['unit_id']
-        unit.type = data['type']
-        unit.station = data['location']
-        unit.capacity = data.get('capacity', unit.capacity)
-        unit.status = 'Available' if data.get('active', True) else 'Out of Service'
-        
+
+        if data.get('type'):
+            type_name = data['type'].strip()
+            unit_type = UnitType.query.filter(
+                func.lower(UnitType.name) == type_name.lower()).first()
+            if not unit_type:
+                unit_type = UnitType(name=type_name)
+                db.session.add(unit_type)
+                db.session.flush()
+            unit.type = unit_type
+
+        unit.name = data['name']
+        unit.location = data.get('location', unit.location)
+        unit.status = data.get('status', unit.status)
+        if 'active' in data:
+            unit.active = str(data.get('active')).lower() not in ('false', '0', 'no')
+
         db.session.commit()
-        
-        current_app.logger.info(f"Updated unit: {unit.unit_number}")
+
+        current_app.logger.info(f"Updated unit: {unit.name}")
         
         return jsonify({
             'success': True,
@@ -1975,17 +2016,20 @@ def api_delete_unit(unit_id):
         unit = Unit.query.get_or_404(unit_id)
         
         # Check if unit is currently assigned to an incident
-        if unit.current_incident_id:
+        active_assignment = UnitAssignment.query.filter(
+            UnitAssignment.unit_id == unit.id,
+            UnitAssignment.cleared_at.is_(None)).first()
+        if active_assignment:
             return jsonify({
                 'success': False,
                 'message': 'Cannot delete unit that is currently assigned to an incident'
             }), 400
-        
-        unit_number = unit.unit_number
+
+        unit_name = unit.name
         db.session.delete(unit)
         db.session.commit()
-        
-        current_app.logger.info(f"Deleted unit: {unit_number}")
+
+        current_app.logger.info(f"Deleted unit: {unit_name}")
         
         return jsonify({
             'success': True,
@@ -2197,57 +2241,15 @@ def import_units():
         return redirect(url_for('admin.manage_units'))
     
     try:
-        # Process CSV file
-        import csv
-        from io import StringIO
-        
-        # Read the file
-        csv_data = file.read().decode('utf-8')
-        csv_file = StringIO(csv_data)
-        reader = csv.DictReader(csv_file)
-        
-        units_added = 0
-        errors = []
-        
-        for row in reader:
-            try:
-                # Check required fields
-                if not row.get('unit_id') or not row.get('type'):
-                    errors.append(f"Row missing required fields: {row}")
-                    continue
-                
-                # Check if unit already exists
-                existing_unit = Unit.query.filter_by(unit_number=row['unit_id']).first()
-                if existing_unit:
-                    errors.append(f"Unit with ID {row['unit_id']} already exists")
-                    continue
-                
-                # Create new unit
-                unit = Unit(
-                    unit_number=row['unit_id'],
-                    type=row['type'],
-                    station=row.get('location', ''),
-                    capacity=row.get('capacity', 0),
-                    status='Available' if row.get('active', 'true').lower() == 'true' else 'Out of Service'
-                )
-                
-                db.session.add(unit)
-                units_added += 1
-                
-            except Exception as e:
-                errors.append(f"Error processing row {row}: {str(e)}")
-        
-        db.session.commit()
-        
-        if errors:
-            flash(f"Imported {units_added} units with {len(errors)} errors. See logs for details.", 'warning')
-            for error in errors:
-                current_app.logger.error(f"Import error: {error}")
+        result = CSVHandler.import_units(StringIO(file.read().decode('utf-8')))
+        if 'error' in result:
+            flash(f"Error importing units: {result['error']}", 'danger')
         else:
-            flash(f"Successfully imported {units_added} units", 'success')
-        
+            flash(f"Imported {result['added']} units, updated {result['updated']}.", 'success')
+            for error in result.get('errors', []):
+                current_app.logger.warning(f"Unit import error: {error}")
         return redirect(url_for('admin.manage_units'))
-        
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error importing units: {str(e)}")
@@ -2263,34 +2265,11 @@ def export_units():
         import csv
         from io import StringIO
         
-        # Create CSV file
-        output = StringIO()
-        writer = csv.writer(output)
-        
-        # Write header
-        writer.writerow(['unit_id', 'type', 'location', 'capacity', 'active'])
-        
-        # Get all units
-        units = Unit.query.all()
-        
-        # Write unit data
-        for unit in units:
-            writer.writerow([
-                unit.unit_number,
-                unit.type,
-                unit.station or '',
-                unit.capacity or '',
-                'true' if unit.status != 'Out of Service' else 'false'
-            ])
-        
-        # Create response
-        output.seek(0)
-        return current_app.response_class(
-            output.getvalue(),
-            mimetype='text/csv',
-            headers={'Content-Disposition': 'attachment; filename=units.csv'}
-        )
-        
+        response = make_response(CSVHandler.export_units())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = 'attachment; filename=units.csv'
+        return response
+
     except Exception as e:
         current_app.logger.error(f"Error exporting units: {str(e)}")
         flash(f"Error exporting units: {str(e)}", 'danger')
@@ -2442,63 +2421,16 @@ def import_users():
         if not file.filename.endswith('.csv'):
             return jsonify({'error': 'File must be a CSV file'}), 400
         
-        # Read the CSV file
-        csv_data = file.read().decode('utf-8').splitlines()
-        csv_reader = csv.DictReader(csv_data)
-        
-        if not csv_reader.fieldnames:
-            return jsonify({'error': 'CSV file is empty or invalid'}), 400
-        
-        required_fields = ['username', 'email', 'password']
-        for field in required_fields:
-            if field not in csv_reader.fieldnames:
-                return jsonify({'error': f"Required field '{field}' is missing in CSV file"}), 400
-        
-        # Process each row
-        created_users = []
-        errors = []
-        for row_num, row in enumerate(csv_reader, start=2):  # Start from 2 to account for header row
-            try:
-                # Check if user already exists
-                existing_user = User.query.filter_by(username=row['username']).first()
-                if existing_user:
-                    errors.append(f"Row {row_num}: Username '{row['username']}' already exists")
-                    continue
-                
-                # Check if email already exists
-                existing_email = User.query.filter_by(email=row['email']).first()
-                if existing_email:
-                    errors.append(f"Row {row_num}: Email '{row['email']}' already registered")
-                    continue
-                
-                # Create new user
-                user = User(
-                    username=row['username'],
-                    email=row['email'],
-                    active=row.get('active', 'true').lower() == 'true'
-                )
-                user.set_password(row['password'])
-                
-                # Set role if provided
-                if 'role' in row and row['role']:
-                    role = Role.query.filter_by(name=row['role']).first()
-                    if role:
-                        user.role_id = role.id
-                    else:
-                        errors.append(f"Row {row_num}: Role '{row['role']}' not found")
-                
-                db.session.add(user)
-                created_users.append(user.username)
-            except Exception as e:
-                errors.append(f"Row {row_num}: {str(e)}")
-        
-        db.session.commit()
-        
+        result = CSVHandler.import_users(StringIO(file.read().decode('utf-8')))
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+
         return jsonify({
             'success': True,
-            'message': f"Imported {len(created_users)} users",
-            'created_users': created_users,
-            'errors': errors
+            'message': f"Imported {result['added']} users, updated {result['updated']}",
+            'added': result['added'],
+            'updated': result['updated'],
+            'errors': result['errors']
         })
     except Exception as e:
         db.session.rollback()
@@ -2511,42 +2443,9 @@ def import_users():
 def export_users():
     """Export users to CSV format."""
     try:
-        include_passwords = request.args.get('include_passwords', 'false').lower() == 'true'
-        
-        # Get all users
-        users = User.query.all()
-        
-        if not users:
-            return jsonify({'error': 'No users found'}), 404
-        
-        # Prepare CSV data
-        output = StringIO()
-        fieldnames = ['username', 'email', 'active', 'role']
-        if include_passwords:
-            fieldnames.append('password')
-        
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
-        writer.writeheader()
-        
-        for user in users:
-            user_data = {
-                'username': user.username,
-                'email': user.email,
-                'active': str(user.active).lower(),
-                'role': user.role.name if user.role else ""
-            }
-            
-            if include_passwords:
-                # This is a placeholder. In a real system, we wouldn't export actual passwords
-                user_data['password'] = "********"
-            
-            writer.writerow(user_data)
-        
-        # Create response
-        response = make_response(output.getvalue())
+        response = make_response(CSVHandler.export_users())
         response.headers["Content-Disposition"] = "attachment; filename=users.csv"
-        response.headers["Content-type"] = "text/csv"
-        
+        response.headers["Content-Type"] = "text/csv"
         return response
     except Exception as e:
         current_app.logger.error(f"Error exporting users: {str(e)}")

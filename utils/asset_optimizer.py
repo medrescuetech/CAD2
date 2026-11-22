@@ -23,7 +23,9 @@ from webassets import Bundle
 _asset_cache = {}
 
 # File extensions that can be minimized
-MINIFIABLE_EXTENSIONS = ('.js', '.css', '.html')
+# Disabled: the regex-based minifier corrupts JS (`//` inside strings/regexes).
+# Gzip compression below still applies and is safe.
+MINIFIABLE_EXTENSIONS = ()
 
 # File extensions that can be gzipped
 GZIPPABLE_EXTENSIONS = ('.js', '.css', '.html', '.txt', '.json', '.svg')
@@ -53,8 +55,10 @@ def init_asset_optimization(app):
         if if_none_match and if_none_match == etag:
             return Response(status=304)  # Not Modified
             
-        # Get optimized asset
+        # Get optimized asset (cached uncompressed; gzip per request)
         content, content_type = get_optimized_asset(file_path)
+        if should_use_gzip(file_path) and accepts_gzip():
+            content = gzip.compress(content)
         
         # Prepare response
         response = make_response(content)
@@ -103,11 +107,7 @@ def get_optimized_asset(file_path):
     if ext in MINIFIABLE_EXTENSIONS:
         content = minify_content(content, ext)
         
-    # Gzip if applicable
-    if should_use_gzip(file_path) and accepts_gzip():
-        content = gzip.compress(content)
-        
-    # Cache the result
+    # Cache the result (uncompressed — gzip is negotiated per request)
     _asset_cache[file_path] = {
         'content': content,
         'timestamp': stat.st_mtime,

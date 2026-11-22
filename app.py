@@ -25,8 +25,11 @@ import functools
 import time
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-import tkinter as tk
-from tkinter import ttk
+
+try:
+    import tkinter as tk
+except ImportError:  # Tk is only needed for the optional desktop launcher
+    tk = None
 
 from flask import Flask, render_template, request, jsonify, current_app, make_response, g, session
 from flask_login import LoginManager, current_user, login_required
@@ -46,6 +49,8 @@ from extensions import db, migrate, csrf, mail, limiter, socketio, session_facto
 
 # Import models
 from models import User, Role, Permission, APIKey, AuditLog
+import core.models  # Register ecosystem shared-core tables
+import core.chronology  # Attach append-only chronology listeners
 from blueprints.pages import pages
 from blueprints.auth import auth
 from blueprints.api import api
@@ -59,10 +64,12 @@ from blueprints.session_management import bp as session_management_bp
 from blueprints.ip_access import bp as ip_access_bp
 from blueprints.reporting import bp as reporting_bp
 from blueprints.locations import bp as locations_bp
+from blueprints.incidents import bp as incidents_bp
 from blueprints.daily_log_api import daily_log_api
 from blueprints.ampds_api import ampds_api
 from blueprints.system_admin import system_admin_bp
 from blueprints.data_management import data_mgmt_bp
+from blueprints.core_api import core_api
 from api.endpoints import api_endpoints
 from utils.log_setup import setup_logger  # Changed from logging_config import
 import websocket_events  # Import WebSocket event handlers
@@ -112,7 +119,10 @@ def create_app(config_name=None):
     # Support passing a dict of overrides for tests
     if isinstance(config_name, dict):
         overrides = config_name
-        config_name = os.environ.get('FLASK_ENV', 'production')
+        if overrides.get('TESTING'):
+            config_name = 'testing'
+        else:
+            config_name = os.environ.get('FLASK_ENV', 'production')
     
     # Determine config name if not provided
     if config_name is None:
@@ -184,7 +194,22 @@ def create_app(config_name=None):
     if not (app.config.get('TESTING') or app.config.get('DISABLE_BACKGROUND_TASKS')):
         init_monitoring(app)
         init_scheduler(app)
-    
+        # PCR integration sender: delivers queued outbound messages to PCR
+        from core import pcr
+        if pcr.config()['enabled']:
+            threading.Thread(target=pcr.run_worker, args=(app,),
+                             daemon=True, name='pcr-delivery').start()
+
+    # Seed ecosystem reference data if the tables exist but are empty
+    with app.app_context():
+        try:
+            from core.models import CodeSet
+            from core.reference_data import insert_defaults
+            if CodeSet.query.count() == 0:
+                insert_defaults()
+        except Exception as exc:
+            app.logger.warning(f'Core reference-data seed skipped: {exc}')
+
     # Initialize asset optimization
     init_asset_optimization(app)
     
@@ -209,9 +234,25 @@ def create_app(config_name=None):
     # Return the configured Flask application
     return app
     
+def _sanitize_engine_options(app):
+    """Drop connection-pool options that SQLite's pool classes do not accept."""
+    uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if not uri.startswith('sqlite'):
+        return
+
+    options = dict(app.config.get('SQLALCHEMY_ENGINE_OPTIONS') or {})
+    for option in ('pool_size', 'max_overflow', 'pool_timeout'):
+        options.pop(option, None)
+    options.pop('poolclass', None)
+    options.setdefault('connect_args', {'check_same_thread': False})
+    options['poolclass'] = StaticPool
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = options
+
+
 def initialize_extensions(app):
     """Initialize Flask extensions."""
     # SQLAlchemy
+    _sanitize_engine_options(app)
     db.init_app(app)
     
     # Flask-Migrate
@@ -246,10 +287,14 @@ def initialize_extensions(app):
     limiter.init_app(app)
     
     # Flask-SocketIO
+    # cors_allowed_origins=None lets engine.io allow same-origin requests
+    # automatically (scheme+host of the request itself). Passing the configured
+    # CORS_ORIGINS list here would REPLACE that default and break websockets on
+    # any host/port not listed there.
     socketio.init_app(
         app,
         async_mode=app.config.get('SOCKETIO_ASYNC_MODE', 'eventlet'),
-        cors_allowed_origins=app.config.get('CORS_ORIGINS', []),
+        cors_allowed_origins=None,
         message_queue=app.config.get('CELERY_BROKER_URL') if app.config.get('USE_CELERY', False) else None,
         logger=app.logger.getChild('socketio'),
         engineio_logger=app.config.get('ENGINEIO_LOGGER', False)
@@ -308,6 +353,18 @@ def register_blueprints(app):
     app.register_blueprint(reporting_bp, url_prefix='/api/reports')
     # locations blueprint defines absolute '/locations/...'; do not add extra prefix
     app.register_blueprint(locations_bp)
+    # incidents blueprint defines '/incidents/...' API routes; mount under /api
+    # so the frontend's /api/incidents* calls resolve
+    app.register_blueprint(incidents_bp, url_prefix='/api')
+    app.register_blueprint(core_api, url_prefix='/api/core')
+    from blueprints.calltaker import bp as calltaker_bp
+    app.register_blueprint(calltaker_bp)
+    from blueprints.eventcad import bp as eventcad_bp
+    app.register_blueprint(eventcad_bp)
+    from blueprints.cadmain import bp as cadmain_bp
+    app.register_blueprint(cadmain_bp)
+    from blueprints.cadreports import bp as cadreports_bp
+    app.register_blueprint(cadreports_bp)
     
     # Web Interface Blueprints
     app.register_blueprint(pages, url_prefix='/')
@@ -792,6 +849,10 @@ class ServerManager:
 
     def create_gui(self):
         """Create the GUI window."""
+        if tk is None:
+            raise RuntimeError(
+                'tkinter is not available; install python3-tk to use the desktop launcher'
+            )
         self.root = tk.Tk()
         self.root.title("CAD System Server Manager")
         self.root.geometry("300x200")

@@ -125,7 +125,7 @@ def create_location():
     log_audit_event(
         category=getattr(AuditCategory, 'LOCATION', AuditCategory.SECURITY),
         severity=AuditSeverity.INFO,
-        message=f"Created new location: {new_location.name}",
+        action=f"Created new location: {new_location.name}",
         user_id=current_user.id
     )
     
@@ -180,7 +180,7 @@ def update_location(location_id):
     log_audit_event(
         category=getattr(AuditCategory, 'LOCATION', AuditCategory.SECURITY),
         severity=AuditSeverity.INFO,
-        message=f"Updated location: {location.name}",
+        action=f"Updated location: {location.name}",
         user_id=current_user.id
     )
     
@@ -206,7 +206,7 @@ def delete_location(location_id):
     log_audit_event(
         category=getattr(AuditCategory, 'LOCATION', AuditCategory.SECURITY),
         severity=AuditSeverity.WARNING,
-        message=f"Deleted location: {location_name}",
+        action=f"Deleted location: {location_name}",
         user_id=current_user.id
     )
     
@@ -306,7 +306,7 @@ def import_locations():
         log_audit_event(
             category=getattr(AuditCategory, 'LOCATION', AuditCategory.SECURITY),
             severity=AuditSeverity.INFO,
-            message=f"Imported {imported_count} locations from CSV",
+            action=f"Imported {imported_count} locations from CSV",
             user_id=current_user.id
         )
         
@@ -371,7 +371,7 @@ def export_locations():
     log_audit_event(
         category=getattr(AuditCategory, 'LOCATION', AuditCategory.SECURITY),
         severity=AuditSeverity.INFO,
-        message=f"Exported {len(locations)} locations to CSV",
+        action=f"Exported {len(locations)} locations to CSV",
         user_id=current_user.id
     )
     
@@ -654,7 +654,7 @@ def create_pickup_point():
         log_audit_event(
             category=AuditCategory.LOCATION,
             severity=AuditSeverity.INFO,
-            message=f"Created new pickup point: {name}",
+            action=f"Created new pickup point: {name}",
             user_id=current_user.id
         )
         
@@ -733,7 +733,7 @@ def update_pickup_point(pickup_point_id):
         log_audit_event(
             category=AuditCategory.LOCATION,
             severity=AuditSeverity.INFO,
-            message=f"Updated pickup point: {pickup_point.name}",
+            action=f"Updated pickup point: {pickup_point.name}",
             user_id=current_user.id
         )
         
@@ -768,7 +768,7 @@ def delete_pickup_point(pickup_point_id):
         log_audit_event(
             category=AuditCategory.LOCATION,
             severity=AuditSeverity.WARNING,
-            message=f"Deactivated pickup point: {pickup_point.name}",
+            action=f"Deactivated pickup point: {pickup_point.name}",
             user_id=current_user.id
         )
         

@@ -8,12 +8,16 @@ const AlarmManager = {
     
     init() {
         this.alarmSound = document.getElementById('alarmSound');
-        this.alarmModal = new bootstrap.Modal(document.getElementById('alarmModal'));
-        
-        // Set up recurring checkbox handler
-        document.getElementById('alarmRecurring').addEventListener('change', (e) => {
-            document.getElementById('daysSelection').style.display = e.checked ? 'block' : 'none';
-        });
+        const modalEl = document.getElementById('alarmModal');
+        this.alarmModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+        // Set up recurring checkbox handler (only on pages with the alarm form)
+        const recurring = document.getElementById('alarmRecurring');
+        if (recurring) {
+            recurring.addEventListener('change', (e) => {
+                document.getElementById('daysSelection').style.display = e.checked ? 'block' : 'none';
+            });
+        }
         
         // Load alarms and start checking
         this.loadAlarms();
@@ -23,8 +27,12 @@ const AlarmManager = {
     async loadAlarms() {
         try {
             const response = await fetch('/api/alarms');
+            if (!response.ok) {
+                this.alarms = [];
+                return;
+            }
             const data = await response.json();
-            
+
             if (data.success) {
                 this.alarms = data.alarms;
                 this.renderAlarms();
@@ -37,6 +45,7 @@ const AlarmManager = {
     
     renderAlarms() {
         const container = document.getElementById('alarmsList');
+        if (!container) return;
         container.innerHTML = '';
         
         this.alarms.forEach(alarm => {
@@ -71,7 +80,7 @@ const AlarmManager = {
     },
     
     showAlarmModal() {
-        this.alarmModal.show();
+        if (this.alarmModal) this.alarmModal.show();
     },
     
     showNewAlarmForm() {
@@ -235,8 +244,9 @@ const AlarmManager = {
     
     updateActiveCount() {
         const countElement = document.getElementById('activeAlarmsCount');
+        if (!countElement) return;
         const count = this.activeAlarms.size;
-        
+
         countElement.textContent = count;
         countElement.style.display = count > 0 ? 'inline' : 'none';
     }

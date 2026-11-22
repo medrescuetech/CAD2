@@ -130,7 +130,7 @@
 {% endblock %}
 
 {% block content %}
-<div id="incidentData" style="display: none;">{% if incident %}{{ incident|tojson|safe }}{% else %}{}{% endif %}</div>
+<div id="incidentData" style="display: none;">{% if incident %}{{ incident.to_dict()|tojson|safe }}{% else %}{}{% endif %}</div>
 <div class="container-fluid">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">

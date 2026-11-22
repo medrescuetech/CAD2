@@ -180,7 +180,7 @@ $(document).ready(function() {
         
         // Create role via API
         $.ajax({
-            url: '/api/admin/roles',
+            url: '/admin/api/admin/roles',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -220,7 +220,7 @@ $(document).ready(function() {
         
         // Update role via API
         $.ajax({
-            url: `/api/admin/roles/${roleName}`,
+            url: `/admin/api/admin/roles/${roleName}`,
             type: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -249,7 +249,7 @@ $(document).ready(function() {
         
         // Delete role via API
         $.ajax({
-            url: `/api/admin/roles/${roleName}`,
+            url: `/admin/api/admin/roles/${roleName}`,
             type: 'DELETE',
             success: function(response) {
                 // Close modal and reload roles
@@ -274,7 +274,7 @@ $(document).ready(function() {
         
         // Get role details
         $.ajax({
-            url: `/api/admin/roles/${roleName}`,
+            url: `/admin/api/admin/roles/${roleName}`,
             type: 'GET',
             success: function(role) {
                 // Populate edit form
@@ -324,7 +324,7 @@ $(document).ready(function() {
     // Helper function to load roles
     function loadRoles() {
         $.ajax({
-            url: '/api/admin/roles',
+            url: '/admin/api/admin/roles',
             type: 'GET',
             success: function(roles) {
                 // Clear existing table

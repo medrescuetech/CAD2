@@ -14,6 +14,8 @@ import time
 import json
 from datetime import datetime
 from werkzeug.exceptions import HTTPException
+from flask_wtf.csrf import validate_csrf
+from wtforms import ValidationError
 from extensions import limiter
 
 def setup_api_middleware(app):
@@ -150,9 +152,16 @@ def setup_api_middleware(app):
         if hasattr(g, 'api_key'):
             return
             
-        # Check CSRF token in header or form data
+        # Check CSRF token in header or form data. The client sends the
+        # signed Flask-WTF token (csrf_token() in base.html), not the raw
+        # session secret — validate it the same way CSRFProtect does.
         csrf_token = request.headers.get('X-CSRF-Token') or request.form.get('csrf_token')
-        if not csrf_token or csrf_token != session.get('csrf_token'):
+        try:
+            validate_csrf(csrf_token)
+            valid = True
+        except ValidationError:
+            valid = False
+        if not valid:
             log_audit_event(
                 category=AuditCategory.SECURITY,
                 action="CSRF token validation failed",

@@ -64,3 +64,19 @@ def app():
 @pytest.fixture()
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def reset_ip_rate_limits():
+    """Clear the custom per-IP rate limiter between tests.
+
+    utils.security.rate_limit_by_ip keeps counts in a module-level dict, so
+    a fast test run exhausts the login cap (10/minute) across files.
+    """
+    try:
+        from utils import security
+        with security.rate_limit_lock:
+            security.rate_limit_data.clear()
+    except Exception:
+        pass
+    yield

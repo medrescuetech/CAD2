@@ -65,8 +65,9 @@ class ErrorHandler {
             }
 
             // Show error to user
+            const src = details.url ? ` [${details.url.split('/').pop()}:${details.lineNo}]` : '';
             if (typeof showAlert === 'function') {
-                showAlert('error', details.message || 'An error occurred');
+                showAlert('error', (details.message || 'An error occurred') + src);
             } else {
                 console.error('Error:', details.message || 'An error occurred');
             }

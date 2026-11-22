@@ -77,59 +77,73 @@ class CSVHandler:
         """Import users from CSV file."""
         try:
             reader = csv.DictReader(file)
-            required_fields = ['username', 'email', 'first_name', 'last_name', 'role', 'active']
-            
-            if not all(field in reader.fieldnames for field in required_fields):
+            required_fields = ['username', 'email']
+            optional_fields = ['first_name', 'last_name', 'role', 'active', 'password']
+
+            if not reader.fieldnames or not all(field in reader.fieldnames for field in required_fields):
                 return {'error': f'Missing required fields. Required: {", ".join(required_fields)}'}
-                
+
             added = 0
             updated = 0
             errors = []
-            
+
             for row in reader:
                 try:
                     # Validate required fields
                     if not all(row.get(field) for field in required_fields):
                         errors.append(f'Row {reader.line_num}: Missing required field values')
                         continue
-                        
+
                     # Validate email format
                     if not re.match(r"[^@]+@[^@]+\.[^@]+", row['email']):
                         errors.append(f'Row {reader.line_num}: Invalid email format')
                         continue
-                        
-                    # Validate role
-                    role = Role.query.filter_by(name=row['role'].lower()).first()
+
+                    # Resolve role (optional, case-insensitive); fall back to the first role
+                    role = None
+                    if row.get('role'):
+                        role = Role.query.filter(
+                            db.func.lower(Role.name) == row['role'].strip().lower()
+                        ).first()
+                        if not role:
+                            errors.append(f'Row {reader.line_num}: Invalid role "{row["role"]}"')
+                            continue
                     if not role:
-                        errors.append(f'Row {reader.line_num}: Invalid role "{row["role"]}"')
-                        continue
-                        
-                    # Convert active to boolean
-                    active = str(row['active']).lower() in ('true', '1', 'yes', 'y')
-                    
+                        role = Role.query.order_by(Role.id).first()
+                        if not role:
+                            errors.append(f'Row {reader.line_num}: No roles configured')
+                            continue
+
+                    # Convert active to boolean (default true)
+                    active = str(row.get('active', 'true')).lower() in ('true', '1', 'yes', 'y')
+
                     # Find or create user
                     user = User.query.filter_by(username=row['username']).first()
-                    
+
                     if user:
                         # Update existing user
                         user.email = row['email']
-                        user.first_name = row['first_name']
-                        user.last_name = row['last_name']
+                        user.first_name = row.get('first_name') or user.first_name
+                        user.last_name = row.get('last_name') or user.last_name
                         user.role = role
                         user.active = active
+                        if row.get('password'):
+                            user.set_password(row['password'])
                         updated += 1
                     else:
-                        # Create new user
+                        email_owner = User.query.filter_by(email=row['email']).first()
+                        if email_owner:
+                            errors.append(f'Row {reader.line_num}: Email "{row["email"]}" already used by "{email_owner.username}"')
+                            continue
                         user = User(
                             username=row['username'],
                             email=row['email'],
-                            first_name=row['first_name'],
-                            last_name=row['last_name'],
+                            first_name=row.get('first_name', ''),
+                            last_name=row.get('last_name', ''),
                             role=role,
-                            active=active
+                            active=active,
+                            password=row.get('password') or 'cadsystem'
                         )
-                        # Set default password
-                        user.password = 'cadsystem'
                         db.session.add(user)
                         added += 1
                         
@@ -152,47 +166,51 @@ class CSVHandler:
         """Import units from CSV file."""
         try:
             reader = csv.DictReader(file)
-            required_fields = ['unit_number', 'unit_type', 'station', 'status', 'active']
-            
-            if not all(field in reader.fieldnames for field in required_fields):
-                return {'error': f'Missing required fields. Required: {", ".join(required_fields)}'}
-                
+            required_fields = ['name']
+
+            if not reader.fieldnames or not all(field in reader.fieldnames for field in required_fields):
+                return {'error': f'Missing required fields. Required: {", ".join(required_fields)}. Optional: type, location, status, active'}
+
             added = 0
             updated = 0
             errors = []
-            
+
             for row in reader:
                 try:
-                    # Validate required fields
-                    if not all(row.get(field) for field in required_fields):
+                    if not row.get('name'):
                         errors.append(f'Row {reader.line_num}: Missing required field values')
                         continue
-                        
-                    # Validate unit type
-                    if row['unit_type'].lower() not in UnitType.values():
-                        errors.append(f'Row {reader.line_num}: Invalid unit type "{row["unit_type"]}". Must be one of: {", ".join(UnitType.values())}')
-                        continue
-                        
-                    # Convert active to boolean
-                    active = str(row['active']).lower() in ('true', '1', 'yes', 'y')
-                    
-                    # Find or create unit
-                    unit = Unit.query.filter_by(unit_number=row['unit_number']).first()
-                    
+
+                    # Resolve unit type by name (optional); create it if unknown
+                    unit_type = None
+                    if row.get('type'):
+                        type_name = row['type'].strip()
+                        unit_type = UnitType.query.filter(
+                            db.func.lower(UnitType.name) == type_name.lower()
+                        ).first()
+                        if not unit_type:
+                            unit_type = UnitType(name=type_name)
+                            db.session.add(unit_type)
+                            db.session.flush()
+
+                    # Convert active to boolean (default true)
+                    active = str(row.get('active', 'true')).lower() in ('true', '1', 'yes', 'y')
+
+                    # Find or create unit (upsert by name)
+                    unit = Unit.query.filter_by(name=row['name']).first()
+
                     if unit:
-                        # Update existing unit
-                        unit.unit_type = row['unit_type'].lower()
-                        unit.station = row['station']
-                        unit.status = row['status']
+                        unit.type = unit_type or unit.type
+                        unit.location = row.get('location') or unit.location
+                        unit.status = row.get('status') or unit.status
                         unit.active = active
                         updated += 1
                     else:
-                        # Create new unit
                         unit = Unit(
-                            unit_number=row['unit_number'],
-                            unit_type=row['unit_type'].lower(),
-                            station=row['station'],
-                            status=row['status'],
+                            name=row['name'],
+                            type=unit_type,
+                            location=row.get('location', ''),
+                            status=row.get('status') or 'available',
                             active=active
                         )
                         db.session.add(unit)
@@ -316,16 +334,16 @@ class CSVHandler:
         writer = csv.writer(output)
         
         # Write header
-        writer.writerow(['unit_number', 'unit_type', 'station', 'status', 'active'])
-        
+        writer.writerow(['name', 'type', 'location', 'status', 'active'])
+
         # Write data
-        units = Unit.query.order_by(Unit.unit_number).all()
+        units = Unit.query.order_by(Unit.name).all()
         for unit in units:
             writer.writerow([
-                unit.unit_number,
-                unit.unit_type,
-                unit.station,
-                unit.status,
+                unit.name,
+                unit.type.name if unit.type else '',
+                unit.location or '',
+                unit.status or '',
                 str(unit.active).lower()
             ])
             
