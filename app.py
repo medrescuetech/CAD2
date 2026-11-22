@@ -287,10 +287,14 @@ def initialize_extensions(app):
     limiter.init_app(app)
     
     # Flask-SocketIO
+    # cors_allowed_origins=None lets engine.io allow same-origin requests
+    # automatically (scheme+host of the request itself). Passing the configured
+    # CORS_ORIGINS list here would REPLACE that default and break websockets on
+    # any host/port not listed there.
     socketio.init_app(
         app,
         async_mode=app.config.get('SOCKETIO_ASYNC_MODE', 'eventlet'),
-        cors_allowed_origins=app.config.get('CORS_ORIGINS', []),
+        cors_allowed_origins=None,
         message_queue=app.config.get('CELERY_BROKER_URL') if app.config.get('USE_CELERY', False) else None,
         logger=app.logger.getChild('socketio'),
         engineio_logger=app.config.get('ENGINEIO_LOGGER', False)

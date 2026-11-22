@@ -2,6 +2,11 @@
 Direct run script for the CAD system application.
 This script will directly run the Flask application using SocketIO.
 """
+# eventlet must be monkey-patched before anything else is imported so that
+# async_mode='eventlet' gets real WebSocket support (environ['wsgi.websocket']).
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import logging
 import sys
